@@ -125,6 +125,7 @@ This report summarizes the findings from evaluating Temporal (Python SDK) for pr
 | Developer Experience | DX-03 | Local Development | ⭐⭐⭐⭐⭐ | temporal server start-dev, single command |
 | Developer Experience | DX-04 | Testing / Time Skipping | ⭐⭐⭐⭐⭐ | WorkflowEnvironment, time skipping, replay test |
 | Developer Experience | DX-05 | Error Messages / Debugging | ⭐⭐⭐⭐ | Full stack traces, UI error display |
+| Developer Experience | DX-06 | Learning Curve | ⭐⭐⭐ | Determinism constraints require understanding |
 | Developer Experience | DX-07 | Local Replay Harness | ⭐⭐⭐⭐⭐ | WorkflowReplayer for production history replay |
 | AI/Agent Integration | AI-01 | LLM Call as Activity | ⭐⭐⭐⭐⭐ | LLM calls as activities, results memoized |
 | AI/Agent Integration | AI-02 | Non-determinism Handling | ⭐⭐⭐⭐ | Activity isolation, prompt/model change mgmt custom |
@@ -138,10 +139,9 @@ This report summarizes the findings from evaluating Temporal (Python SDK) for pr
 
 | Category | ID | Item | Rating | Notes | Verification Script |
 |----------|-----|------|--------|-------|---------------------|
-| Developer Experience | DX-06 | Learning Curve | ⭐⭐⭐ | Determinism constraints require understanding | 10_dx_developer_experience.py |
 | AI/Agent Integration | AI-04 | Streaming | ⭐⭐⭐ | No cross-workflow boundary streaming | 11_ai_agent_integration.py |
 
-> Note: Both items rated ⭐⭐⭐ (PoC Ready), no items rated ⭐⭐ or below.
+> Note: AI-04 is rated ⭐⭐⭐ (PoC Ready), no items rated ⭐⭐ or below. DX-06 moved to Good Items as it meets the ⭐⭐⭐+ threshold.
 
 ---
 
