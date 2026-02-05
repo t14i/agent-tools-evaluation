@@ -43,7 +43,7 @@ This report summarizes the findings from evaluating OpenAI Agents SDK (openai-ag
 | Category | Items | Good (⭐⭐⭐+) | Not Good (⭐⭐-) | Notes |
 |----------|-------|---------------|-----------------|-------|
 | TC: Tool Calling | 5 | 5 | 0 | Tool definition excellent, Pydantic native |
-| HI: Human-in-the-Loop | 5 | 3 | 2 | Approval via callbacks, timeout/notification custom |
+| HI: Human-in-the-Loop | 5 | 4 | 1 | Native needs_approval API (v0.8.0), timeout/notification custom |
 | DU: Durable Execution | 6 | 4 | 2 | Sessions API solid, cleanup/concurrency custom |
 | ME: Memory | 8 | 4 | 4 | Basic memory OK, agent autonomous mgmt missing |
 | MA: Multi-Agent | 5 | 4 | 1 | Native handoffs excellent |
@@ -52,7 +52,7 @@ This report summarizes the findings from evaluating OpenAI Agents SDK (openai-ag
 | CX: Connectors & Ops | 4 | 2 | 2 | Responses API good, rate limit custom |
 | OB: Observability | 7 | 4 | 3 | Built-in tracing excellent, OTel/SLO custom |
 | TE: Testing & Evaluation | 5 | 3 | 2 | Mock injection works, simulation custom |
-| **Total** | **57** | **32** | **25** | |
+| **Total** | **57** | **33** | **24** | |
 
 ### Fail-Close Items Status
 
@@ -80,9 +80,9 @@ This report summarizes the findings from evaluating OpenAI Agents SDK (openai-ag
 | Tool Calling | TC-03 | Parallel Execution | ⭐⭐⭐⭐⭐ | Up to 128 tools per agent |
 | Tool Calling | TC-04 | Error Handling | ⭐⭐⭐⭐ | Automatic error catching, LLM recovery |
 | Tool Calling | TC-05 | Argument Validation | ⭐⭐⭐⭐⭐ | Native Pydantic integration |
-| Human-in-the-Loop | HI-01 | Interrupt API | ⭐⭐⭐⭐ | human_input_callback, state serialization |
-| Human-in-the-Loop | HI-02 | State Manipulation | ⭐⭐⭐ | Sessions allow state editing |
-| Human-in-the-Loop | HI-03 | Resume Control | ⭐⭐⭐⭐ | Approval/rejection via callbacks |
+| Human-in-the-Loop | HI-01 | Interrupt API | ⭐⭐⭐⭐⭐ | Native needs_approval=True, result.interruptions |
+| Human-in-the-Loop | HI-02 | State Manipulation | ⭐⭐⭐⭐ | RunState.to_json()/from_json(), full state access |
+| Human-in-the-Loop | HI-03 | Resume Control | ⭐⭐⭐⭐⭐ | state.approve()/reject(), selective decisions |
 | Durable Execution | DU-01 | State Persistence | ⭐⭐⭐⭐ | Sessions API |
 | Durable Execution | DU-02 | Process Resume | ⭐⭐⭐⭐ | Session restoration |
 | Durable Execution | DU-03 | HITL Persistence | ⭐⭐⭐ | Sessions + state serialization |
@@ -282,34 +282,50 @@ def get_weather_strict(city: str) -> str:
 
 # Part 3: Human-in-the-Loop (HITL)
 
-## 3.1 Approval Flow (05_hitl_approval.py)
+## 3.1 Native Approval Flow (05_hitl_approval.py)
 
-**Ratings**:
-- HI-01 (Interrupt API): ⭐⭐⭐⭐
-- HI-03 (Resume Control): ⭐⭐⭐⭐
+**Ratings** (Updated for v0.8.0):
+- HI-01 (Interrupt API): ⭐⭐⭐⭐⭐
+- HI-02 (State Manipulation): ⭐⭐⭐⭐
+- HI-03 (Resume Control): ⭐⭐⭐⭐⭐
 
-### Implementation Pattern
+### Native HITL API (v0.8.0+)
 
 ```python
-# OpenAI SDK uses human_input_callback for HITL
-def approval_wrapper(tool_fn, approval_manager):
-    def wrapped(*args, **kwargs):
-        if approval_manager.needs_approval(tool_fn.name):
-            request = approval_manager.create_request(tool_fn.name, kwargs)
-            # Wait for approval...
-            if not request.approved:
-                return "Operation rejected"
-        return tool_fn(*args, **kwargs)
-    return wrapped
+# Define tool with approval requirement
+@function_tool(needs_approval=True)
+def delete_file(path: str) -> str:
+    """Delete a file. Requires human approval."""
+    return f"Deleted: {path}"
+
+# Conditional approval with callable
+async def needs_approval_check(ctx, params, call_id) -> bool:
+    return "/etc" in params.get("path", "")
+
+@function_tool(needs_approval=needs_approval_check)
+def read_file(path: str) -> str:
+    """Read file. Requires approval for sensitive paths."""
+    return f"Contents: {path}"
+
+# Run and handle interruptions
+result = await Runner.run(agent, "Delete /tmp/test.txt")
+
+if result.interruptions:
+    state = result.to_state()
+    for interruption in result.interruptions:
+        state.approve(interruption)  # or state.reject(interruption)
+    result = await Runner.run(agent, state)  # Resume
 ```
 
 ### Comparison with LangGraph
 
-| Feature | OpenAI SDK | LangGraph |
-|---------|------------|-----------|
-| Interrupt | human_input_callback | interrupt() |
-| Resume | Tool wrapper | Command(resume=...) |
-| State | Custom serialization | Checkpointer |
+| Feature | OpenAI SDK (v0.8.0+) | LangGraph |
+|---------|---------------------|-----------|
+| Interrupt | needs_approval=True | interrupt() |
+| Resume | Runner.run(agent, state) | Command(resume=...) |
+| State | RunState.to_json()/from_json() | Checkpointer |
+| Approve/Reject | state.approve()/reject() | Update state |
+| **Verdict** | **Now comparable** | Native support |
 
 ---
 

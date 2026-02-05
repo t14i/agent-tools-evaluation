@@ -43,7 +43,7 @@ result = Runner.run_sync(agent, "Hello")
 | マルチエージェント | ◎ | ネイティブhandoff()、階層型・ルーティング型 |
 | 状態永続化 | ○ | Sessions API（SQLite/SQLAlchemy/Dapr/Hosted） |
 | メモリ | ○ | 会話メモリ、File Search（RAG）組み込み |
-| HITL | ○ | human_input_callback、承認フロー |
+| HITL | ◎ | ネイティブneeds_approval API（v0.8.0）、承認/拒否/状態永続化 |
 | 観測性 | ○ | トレーシング標準、Datadog/Langfuse連携 |
 | ガバナンス | △ | Guardrails基盤のみ、ポリシーエンジンは自作 |
 | 決定性・リプレイ | × | seedパラメータのみ、本格的なリプレイは自作 |
@@ -97,7 +97,7 @@ result = Runner.run_sync(agent, "Hello")
 | カテゴリ | 項目数 | Good (⭐⭐⭐+) | Not Good (⭐⭐-) | 備考 |
 |----------|--------|---------------|-----------------|------|
 | TC: ツール呼び出し | 5 | 5 | 0 | ツール定義優秀、Pydanticネイティブ |
-| HI: 人間介入 | 5 | 3 | 2 | コールバックで承認、タイムアウト/通知は自作 |
+| HI: 人間介入 | 5 | 4 | 1 | ネイティブneeds_approval API（v0.8.0）、タイムアウト/通知は自作 |
 | DU: 永続的実行 | 6 | 4 | 2 | Sessions API堅牢、クリーンアップ/並行性は自作 |
 | ME: メモリ | 8 | 4 | 4 | 基本メモリOK、エージェント自律管理なし |
 | MA: マルチエージェント | 5 | 4 | 1 | ネイティブhandoffs優秀 |
@@ -106,7 +106,7 @@ result = Runner.run_sync(agent, "Hello")
 | CX: コネクタ・運用 | 4 | 2 | 2 | Responses API良好、レート制限自作 |
 | OB: 観測性 | 7 | 4 | 3 | 組み込みトレーシング優秀、OTel/SLO自作 |
 | TE: テスト・評価 | 5 | 3 | 2 | モック注入可、シミュレーション自作 |
-| **合計** | **57** | **32** | **25** | |
+| **合計** | **57** | **33** | **24** | |
 
 ### フェイルクローズ項目ステータス
 
@@ -134,9 +134,9 @@ result = Runner.run_sync(agent, "Hello")
 | ツール呼び出し | TC-03 | 並列実行 | ⭐⭐⭐⭐⭐ | エージェントあたり最大128ツール |
 | ツール呼び出し | TC-04 | エラーハンドリング | ⭐⭐⭐⭐ | 自動エラーキャッチ、LLMリカバリ |
 | ツール呼び出し | TC-05 | 引数バリデーション | ⭐⭐⭐⭐⭐ | ネイティブPydantic統合 |
-| 人間介入 | HI-01 | 中断API | ⭐⭐⭐⭐ | human_input_callback、状態シリアライズ |
-| 人間介入 | HI-02 | 状態操作 | ⭐⭐⭐ | Sessionsで状態編集可 |
-| 人間介入 | HI-03 | 再開制御 | ⭐⭐⭐⭐ | コールバック経由の承認/却下 |
+| 人間介入 | HI-01 | 中断API | ⭐⭐⭐⭐⭐ | ネイティブneeds_approval=True、result.interruptions |
+| 人間介入 | HI-02 | 状態操作 | ⭐⭐⭐⭐ | RunState.to_json()/from_json()、完全な状態アクセス |
+| 人間介入 | HI-03 | 再開制御 | ⭐⭐⭐⭐⭐ | state.approve()/reject()、選択的判断 |
 | 永続的実行 | DU-01 | 状態永続化 | ⭐⭐⭐⭐ | Sessions API |
 | 永続的実行 | DU-02 | プロセス再開 | ⭐⭐⭐⭐ | セッション復元 |
 | 永続的実行 | DU-03 | HITL永続化 | ⭐⭐⭐ | Sessions + 状態シリアライズ |
@@ -336,34 +336,50 @@ def get_weather_strict(city: str) -> str:
 
 # Part 3: Human-in-the-Loop (HITL)
 
-## 3.1 承認フロー (05_hitl_approval.py)
+## 3.1 ネイティブ承認フロー (05_hitl_approval.py)
 
-**評価**:
-- HI-01 (中断API): ⭐⭐⭐⭐
-- HI-03 (再開制御): ⭐⭐⭐⭐
+**評価** (v0.8.0で更新):
+- HI-01 (中断API): ⭐⭐⭐⭐⭐
+- HI-02 (状態操作): ⭐⭐⭐⭐
+- HI-03 (再開制御): ⭐⭐⭐⭐⭐
 
-### 実装パターン
+### ネイティブHITL API (v0.8.0+)
 
 ```python
-# OpenAI SDKはhuman_input_callbackでHITLを実現
-def approval_wrapper(tool_fn, approval_manager):
-    def wrapped(*args, **kwargs):
-        if approval_manager.needs_approval(tool_fn.name):
-            request = approval_manager.create_request(tool_fn.name, kwargs)
-            # 承認待ち...
-            if not request.approved:
-                return "操作が却下されました"
-        return tool_fn(*args, **kwargs)
-    return wrapped
+# 承認が必要なツールを定義
+@function_tool(needs_approval=True)
+def delete_file(path: str) -> str:
+    """ファイルを削除。人間の承認が必要。"""
+    return f"削除完了: {path}"
+
+# 条件付き承認（callable）
+async def needs_approval_check(ctx, params, call_id) -> bool:
+    return "/etc" in params.get("path", "")
+
+@function_tool(needs_approval=needs_approval_check)
+def read_file(path: str) -> str:
+    """ファイル読み取り。機密パスには承認が必要。"""
+    return f"内容: {path}"
+
+# 実行と中断処理
+result = await Runner.run(agent, "Delete /tmp/test.txt")
+
+if result.interruptions:
+    state = result.to_state()
+    for interruption in result.interruptions:
+        state.approve(interruption)  # or state.reject(interruption)
+    result = await Runner.run(agent, state)  # 再開
 ```
 
 ### LangGraphとの比較
 
-| 機能 | OpenAI SDK | LangGraph |
-|------|------------|-----------|
-| 中断 | human_input_callback | interrupt() |
-| 再開 | ツールラッパー | Command(resume=...) |
-| 状態 | カスタムシリアライズ | Checkpointer |
+| 機能 | OpenAI SDK (v0.8.0+) | LangGraph |
+|------|---------------------|-----------|
+| 中断 | needs_approval=True | interrupt() |
+| 再開 | Runner.run(agent, state) | Command(resume=...) |
+| 状態 | RunState.to_json()/from_json() | Checkpointer |
+| 承認/却下 | state.approve()/reject() | 状態更新 |
+| **評価** | **LangGraphと同等** | ネイティブサポート |
 
 ---
 

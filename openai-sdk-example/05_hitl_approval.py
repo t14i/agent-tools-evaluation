@@ -1,256 +1,81 @@
 """
 Human-in-the-Loop - Part 1: Approval Flow (HI-01, HI-03)
-Interrupt mechanism, approval/rejection, state serialization
+Native HITL API: needs_approval, RunState.approve/reject, state serialization
+
+Updated for OpenAI Agents SDK v0.8.0 native HITL support.
 """
 
 from dotenv import load_dotenv
 load_dotenv()
 
 
+import asyncio
 import json
-from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Optional, Any
 from agents import Agent, Runner, function_tool
+from agents.run import RunState
 
 
 # =============================================================================
-# HI-01: Interrupt API via human_input_callback
+# HI-01: Native Interrupt API via needs_approval
 # =============================================================================
 
-@dataclass
-class PendingApproval:
-    """Represents a pending approval request."""
-    id: str
-    tool_name: str
-    tool_args: dict
-    created_at: datetime
-    status: str = "pending"  # pending, approved, rejected
-    approver_id: Optional[str] = None
-    decision_at: Optional[datetime] = None
-
-
-class ApprovalManager:
-    """
-    Manages approval requests and decisions.
-    Implements HI-01 (Interrupt) and HI-03 (Resume Control).
-    """
-
-    def __init__(self):
-        self.pending: dict[str, PendingApproval] = {}
-        self.require_approval_for = {"delete_file", "send_email", "execute_query"}
-        self._approval_counter = 0
-
-    def needs_approval(self, tool_name: str) -> bool:
-        """Check if a tool requires approval."""
-        return tool_name in self.require_approval_for
-
-    def create_approval_request(self, tool_name: str, tool_args: dict) -> PendingApproval:
-        """Create a new approval request."""
-        self._approval_counter += 1
-        approval_id = f"approval_{self._approval_counter}"
-
-        request = PendingApproval(
-            id=approval_id,
-            tool_name=tool_name,
-            tool_args=tool_args,
-            created_at=datetime.now()
-        )
-        self.pending[approval_id] = request
-        return request
-
-    def approve(self, approval_id: str, approver_id: str) -> bool:
-        """Approve a pending request."""
-        if approval_id not in self.pending:
-            return False
-
-        request = self.pending[approval_id]
-        request.status = "approved"
-        request.approver_id = approver_id
-        request.decision_at = datetime.now()
-        return True
-
-    def reject(self, approval_id: str, approver_id: str, reason: str = "") -> bool:
-        """Reject a pending request."""
-        if approval_id not in self.pending:
-            return False
-
-        request = self.pending[approval_id]
-        request.status = "rejected"
-        request.approver_id = approver_id
-        request.decision_at = datetime.now()
-        return True
-
-    def get_pending(self) -> list[PendingApproval]:
-        """Get all pending approvals."""
-        return [r for r in self.pending.values() if r.status == "pending"]
-
-    def serialize(self) -> str:
-        """Serialize state for persistence (HI-01)."""
-        data = {
-            "pending": {
-                k: {
-                    "id": v.id,
-                    "tool_name": v.tool_name,
-                    "tool_args": v.tool_args,
-                    "created_at": v.created_at.isoformat(),
-                    "status": v.status,
-                    "approver_id": v.approver_id,
-                    "decision_at": v.decision_at.isoformat() if v.decision_at else None
-                }
-                for k, v in self.pending.items()
-            },
-            "counter": self._approval_counter
-        }
-        return json.dumps(data)
-
-    @classmethod
-    def deserialize(cls, data: str) -> "ApprovalManager":
-        """Deserialize state from persistence."""
-        parsed = json.loads(data)
-        manager = cls()
-        manager._approval_counter = parsed.get("counter", 0)
-
-        for k, v in parsed.get("pending", {}).items():
-            manager.pending[k] = PendingApproval(
-                id=v["id"],
-                tool_name=v["tool_name"],
-                tool_args=v["tool_args"],
-                created_at=datetime.fromisoformat(v["created_at"]),
-                status=v["status"],
-                approver_id=v.get("approver_id"),
-                decision_at=datetime.fromisoformat(v["decision_at"]) if v.get("decision_at") else None
-            )
-
-        return manager
-
-
-# =============================================================================
-# Tools with approval integration
-# =============================================================================
-
-approval_manager = ApprovalManager()
-
-
-@function_tool
+# Method 1: Always require approval (bool)
+@function_tool(needs_approval=True)
 def delete_file(path: str) -> str:
-    """Delete a file (requires approval)."""
+    """Delete a file. This operation always requires human approval."""
     return f"Deleted file: {path}"
 
 
-@function_tool
+@function_tool(needs_approval=True)
 def send_email(to: str, subject: str, body: str) -> str:
-    """Send an email (requires approval)."""
+    """Send an email. This operation always requires human approval."""
     return f"Email sent to {to} with subject '{subject}'"
 
 
-@function_tool
+@function_tool(needs_approval=True)
 def execute_query(sql: str) -> str:
-    """Execute a database query (requires approval)."""
+    """Execute a database query. This operation always requires human approval."""
     return f"Query executed: {sql[:50]}..."
 
 
-# =============================================================================
-# Human input callback for approval
-# =============================================================================
-
-def human_input_callback(prompt: str) -> str:
-    """
-    Callback for human input during execution.
-    This is OpenAI SDK's mechanism for HITL.
-    """
-    print(f"\n[HITL] Human input requested: {prompt}")
-
-    # In production, this would:
-    # 1. Notify the approver
-    # 2. Wait for response
-    # 3. Return the decision
-
-    # For demo, simulate approval
-    return "approved"
+# Method 2: Conditional approval (callable)
+async def needs_dangerous_approval(ctx, params: dict, call_id: str) -> bool:
+    """Conditionally require approval for dangerous operations."""
+    path = params.get("path", "")
+    # Require approval for system directories or important files
+    dangerous_paths = ["/etc", "/usr", "/important", "/production"]
+    return any(danger in path for danger in dangerous_paths)
 
 
-# =============================================================================
-# Agent with approval flow
-# =============================================================================
+@function_tool(needs_approval=needs_dangerous_approval)
+def read_file(path: str) -> str:
+    """Read a file. Requires approval for sensitive paths."""
+    return f"Contents of {path}: [file data here]"
 
-# Create wrapped tools with explicit type hints
+
+# Safe tool (no approval needed)
 @function_tool
-def delete_file_approved(path: str) -> str:
-    """Delete a file (requires approval)."""
-    tool_name = "delete_file"
-    tool_args = {"path": path}
-
-    request = approval_manager.create_approval_request(tool_name, tool_args)
-    print(f"\n  [APPROVAL REQUIRED]")
-    print(f"  Request ID: {request.id}")
-    print(f"  Tool: {tool_name}")
-    print(f"  Args: {tool_args}")
-
-    # Simulate approval (in production, async)
-    approval_manager.approve(request.id, "demo_user")
-
-    if request.status == "approved":
-        print(f"  Status: APPROVED by {request.approver_id}")
-        return f"Deleted file: {path}"
-    else:
-        print(f"  Status: REJECTED")
-        return f"Operation rejected: {tool_name}"
+def list_files(directory: str) -> str:
+    """List files in a directory. No approval needed."""
+    return f"Files in {directory}: file1.txt, file2.txt, file3.txt"
 
 
-@function_tool
-def send_email_approved(to: str, subject: str, body: str) -> str:
-    """Send an email (requires approval)."""
-    tool_name = "send_email"
-    tool_args = {"to": to, "subject": subject, "body": body}
-
-    request = approval_manager.create_approval_request(tool_name, tool_args)
-    print(f"\n  [APPROVAL REQUIRED]")
-    print(f"  Request ID: {request.id}")
-    print(f"  Tool: {tool_name}")
-    print(f"  Args: {tool_args}")
-
-    approval_manager.approve(request.id, "demo_user")
-
-    if request.status == "approved":
-        print(f"  Status: APPROVED by {request.approver_id}")
-        return f"Email sent to {to} with subject '{subject}'"
-    else:
-        print(f"  Status: REJECTED")
-        return f"Operation rejected: {tool_name}"
-
-
-@function_tool
-def execute_query_approved(sql: str) -> str:
-    """Execute a database query (requires approval)."""
-    tool_name = "execute_query"
-    tool_args = {"sql": sql}
-
-    request = approval_manager.create_approval_request(tool_name, tool_args)
-    print(f"\n  [APPROVAL REQUIRED]")
-    print(f"  Request ID: {request.id}")
-    print(f"  Tool: {tool_name}")
-    print(f"  Args: {tool_args}")
-
-    approval_manager.approve(request.id, "demo_user")
-
-    if request.status == "approved":
-        print(f"  Status: APPROVED by {request.approver_id}")
-        return f"Query executed: {sql[:50]}..."
-    else:
-        print(f"  Status: REJECTED")
-        return f"Operation rejected: {tool_name}"
-
+# =============================================================================
+# Agent with HITL tools
+# =============================================================================
 
 hitl_agent = Agent(
     name="HITLBot",
     instructions="""You are an assistant that performs file and email operations.
-    Some operations require human approval before execution.
-    Always confirm what you're about to do before taking action.""",
+    When asked to perform an operation, ALWAYS use the appropriate tool immediately.
+    Do not ask for confirmation - the system handles approvals automatically.
+    Just call the tool with the requested parameters.""",
     tools=[
-        delete_file_approved,
-        send_email_approved,
-        execute_query_approved,
+        delete_file,
+        send_email,
+        execute_query,
+        read_file,
+        list_files,
     ],
 )
 
@@ -259,70 +84,216 @@ hitl_agent = Agent(
 # Tests
 # =============================================================================
 
-def test_approval_flow():
-    """Test basic approval flow (HI-01)."""
+async def test_native_approval_flow():
+    """Test native HITL approval flow (HI-01)."""
     print("\n" + "=" * 70)
-    print("TEST: Approval Flow (HI-01)")
+    print("TEST: Native Approval Flow (HI-01)")
     print("=" * 70)
 
-    result = Runner.run_sync(
+    # Run agent - will be interrupted due to needs_approval=True
+    result = await Runner.run(
         hitl_agent,
         "Delete the file /tmp/test.txt"
     )
 
-    print(f"\nResult: {result.final_output}")
+    # Check for interruptions directly on result
+    has_interruptions = len(result.interruptions) > 0
 
-    # Check pending approvals
-    pending = approval_manager.get_pending()
-    print(f"\nPending approvals: {len(pending)}")
+    print(f"\nResult has interruptions: {has_interruptions}")
+    print(f"Number of pending approvals: {len(result.interruptions)}")
+
+    if has_interruptions:
+        # Get state for approval handling
+        state = result.to_state()
+
+        for i, interruption in enumerate(result.interruptions):
+            print(f"\n  Interruption {i + 1}:")
+            print(f"    Tool: {interruption.raw_item.name}")
+            print(f"    Call ID: {interruption.raw_item.call_id}")
+            print(f"    Arguments: {interruption.raw_item.arguments}")
+
+        # Approve all pending tool calls
+        print("\n  [APPROVING all tool calls...]")
+        for interruption in result.interruptions:
+            state.approve(interruption)
+
+        # Resume execution with approved state
+        print("  [RESUMING execution...]")
+        result = await Runner.run(hitl_agent, state)
+
+        print(f"\nFinal output: {result.final_output}")
+    else:
+        print(f"\nNo approvals needed. Final output: {result.final_output}")
+
+    print("\n✅ Native approval flow test completed")
 
 
-def test_state_serialization():
-    """Test state serialization (HI-01 persistence)."""
+async def test_rejection_flow():
+    """Test rejection flow (HI-03)."""
+    print("\n" + "=" * 70)
+    print("TEST: Rejection Flow (HI-03)")
+    print("=" * 70)
+
+    result = await Runner.run(
+        hitl_agent,
+        "Execute this query: DROP TABLE users"
+    )
+
+    print(f"\nPending approvals: {len(result.interruptions)}")
+
+    if result.interruptions:
+        state = result.to_state()
+
+        print("\n  [REJECTING dangerous operation...]")
+        for interruption in result.interruptions:
+            print(f"    Rejecting: {interruption.raw_item.name}")
+            state.reject(interruption)
+
+        # Resume with rejection
+        result = await Runner.run(hitl_agent, state)
+        print(f"\nFinal output after rejection: {result.final_output}")
+
+    print("\n✅ Rejection flow test completed")
+
+
+async def test_conditional_approval():
+    """Test conditional approval with callable (HI-01)."""
+    print("\n" + "=" * 70)
+    print("TEST: Conditional Approval (HI-01)")
+    print("=" * 70)
+
+    # Safe path - should not require approval
+    print("\n--- Safe path (no approval needed) ---")
+    result = await Runner.run(
+        hitl_agent,
+        "Read the file /tmp/safe.txt"
+    )
+    print(f"Interruptions for safe path: {len(result.interruptions)}")
+    if not result.interruptions:
+        print(f"Output: {result.final_output}")
+
+    # Dangerous path - should require approval
+    print("\n--- Dangerous path (approval required) ---")
+    result = await Runner.run(
+        hitl_agent,
+        "Read the file /etc/passwd"
+    )
+    print(f"Interruptions for dangerous path: {len(result.interruptions)}")
+
+    if result.interruptions:
+        state = result.to_state()
+        for interruption in result.interruptions:
+            print(f"  Approval needed for: {interruption.raw_item.name}")
+            print(f"  Path: {interruption.raw_item.arguments}")
+            state.approve(interruption)
+
+        result = await Runner.run(hitl_agent, state)
+        print(f"Output after approval: {result.final_output}")
+
+    print("\n✅ Conditional approval test completed")
+
+
+async def test_state_serialization():
+    """Test state serialization for persistence (HI-01)."""
     print("\n" + "=" * 70)
     print("TEST: State Serialization (HI-01)")
     print("=" * 70)
 
-    # Create some approval requests
-    approval_manager.create_approval_request("test_tool", {"arg": "value"})
+    # Create interrupted state
+    result = await Runner.run(
+        hitl_agent,
+        "Send email to admin@example.com with subject 'Alert' and body 'System alert'"
+    )
 
-    # Serialize
-    serialized = approval_manager.serialize()
-    print(f"\nSerialized state:\n{serialized[:200]}...")
+    if result.interruptions:
+        state = result.to_state()
 
-    # Deserialize
-    restored = ApprovalManager.deserialize(serialized)
-    print(f"\nRestored pending count: {len(restored.get_pending())}")
-    print("✅ State can be serialized/deserialized")
+        # Serialize state to JSON dict
+        serialized = state.to_json()
+        print(f"\nSerialized state type: {type(serialized)}")
+        print(f"Serialized state keys: {list(serialized.keys()) if isinstance(serialized, dict) else 'N/A'}")
+
+        # Convert to string for storage
+        serialized_str = json.dumps(serialized)
+        print(f"JSON string length: {len(serialized_str)} chars")
+        print(f"JSON preview: {serialized_str[:200]}...")
+
+        # In production: save to database, file, etc.
+        # saved_state = db.save(serialized_str)
+
+        # Later: restore state
+        restored_dict = json.loads(serialized_str)
+        restored_state = await RunState.from_json(hitl_agent, restored_dict)
+
+        # Verify interruptions are preserved
+        restored_interruptions = restored_state.get_interruptions()
+        print(f"\nRestored interruptions: {len(restored_interruptions)}")
+
+        # Approve and resume from restored state
+        for interruption in restored_interruptions:
+            restored_state.approve(interruption)
+
+        result = await Runner.run(hitl_agent, restored_state)
+        print(f"Final output after restore: {result.final_output}")
+    else:
+        print("\nNo interruptions - model may have responded without calling tool")
+
+    print("\n✅ State serialization test completed")
 
 
-def test_approve_reject():
-    """Test approve/reject decisions (HI-03)."""
+async def test_multiple_approvals():
+    """Test multiple tool calls requiring approval."""
     print("\n" + "=" * 70)
-    print("TEST: Approve/Reject (HI-03)")
+    print("TEST: Multiple Approvals")
     print("=" * 70)
 
-    # Create a new manager for clean test
-    mgr = ApprovalManager()
+    result = await Runner.run(
+        hitl_agent,
+        "Delete /tmp/file1.txt and send an email to user@example.com with subject 'Done' and body 'Files cleaned'"
+    )
 
-    # Create request
-    request = mgr.create_approval_request("delete_file", {"path": "/important/data.txt"})
-    print(f"\nCreated request: {request.id}")
-    print(f"Status: {request.status}")
+    print(f"\nTotal pending approvals: {len(result.interruptions)}")
 
-    # Approve
-    mgr.approve(request.id, "admin@example.com")
-    print(f"\nAfter approval:")
-    print(f"Status: {request.status}")
-    print(f"Approver: {request.approver_id}")
+    if result.interruptions:
+        state = result.to_state()
 
-    # Create another and reject
-    request2 = mgr.create_approval_request("execute_query", {"sql": "DROP TABLE users"})
-    mgr.reject(request2.id, "security@example.com", "Too dangerous")
-    print(f"\nRejected request:")
-    print(f"Status: {request2.status}")
+        # Selectively approve/reject
+        for i, interruption in enumerate(result.interruptions):
+            tool_name = interruption.raw_item.name
+            print(f"\n  [{i + 1}] {tool_name}")
 
-    print("\n✅ Approve/reject flow works correctly")
+            if tool_name == "delete_file":
+                print("    -> Approving file deletion")
+                state.approve(interruption)
+            elif tool_name == "send_email":
+                print("    -> Rejecting email (not needed)")
+                state.reject(interruption)
+            else:
+                print("    -> Approving by default")
+                state.approve(interruption)
+
+        # Resume
+        result = await Runner.run(hitl_agent, state)
+        print(f"\nFinal output: {result.final_output}")
+
+    print("\n✅ Selective approve/reject test completed")
+
+
+def test_sync_wrapper():
+    """Test synchronous wrapper for approval flow."""
+    print("\n" + "=" * 70)
+    print("TEST: Sync Wrapper (Runner.run_sync)")
+    print("=" * 70)
+
+    # Note: For sync usage, the approval loop needs to be handled differently
+    # This is a simplified demo
+    result = Runner.run_sync(
+        hitl_agent,
+        "List files in /tmp directory"  # This doesn't require approval
+    )
+    print(f"\nSync result: {result.final_output}")
+    print(f"Interruptions in sync: {len(result.interruptions)}")
+    print("\n✅ Sync wrapper test completed")
 
 
 # =============================================================================
@@ -331,45 +302,60 @@ def test_approve_reject():
 
 SUMMARY = """
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ HI-01, HI-03: HITL APPROVAL FLOW - EVALUATION SUMMARY                       │
+│ HI-01, HI-03: NATIVE HITL API - EVALUATION SUMMARY                          │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│ HI-01 (Interrupt API): ⭐⭐⭐⭐ (Production Ready)                           │
-│   ✅ human_input_callback for synchronous approval                          │
-│   ✅ State serialization possible                                           │
-│   ✅ Tool wrapping for approval gates                                       │
-│   ❌ No built-in interrupt/resume like LangGraph                            │
-│   ❌ Requires custom implementation for async approval                      │
+│ HI-01 (Interrupt API): ⭐⭐⭐⭐⭐ (Production Recommended)                    │
+│   ✅ Native needs_approval=True parameter                                   │
+│   ✅ Conditional approval via callable                                      │
+│   ✅ result.interruptions for pending approvals                             │
+│   ✅ State serialization with to_json()/from_json()                         │
+│   ✅ Seamless resume with Runner.run(agent, state)                          │
 │                                                                             │
-│ HI-03 (Resume Control): ⭐⭐⭐⭐ (Production Ready)                          │
-│   ✅ Approval/rejection API                                                 │
-│   ✅ Approver tracking                                                      │
-│   ✅ Decision timestamp                                                     │
-│   ❌ No built-in Command(resume=...) pattern                                │
+│ HI-03 (Resume Control): ⭐⭐⭐⭐⭐ (Production Recommended)                   │
+│   ✅ state.approve(interruption) for approval                               │
+│   ✅ state.reject(interruption) for rejection                               │
+│   ✅ Selective approve/reject per tool call                                 │
+│   ✅ Resume execution preserves context                                     │
+│                                                                             │
+│ Key Features (v0.8.0+):                                                     │
+│   - @function_tool(needs_approval=True) - always require approval           │
+│   - @function_tool(needs_approval=callable) - conditional approval          │
+│   - result.interruptions - list of pending approvals                        │
+│   - result.to_state() - get RunState for manipulation                       │
+│   - state.approve(item) / state.reject(item) - make decisions               │
+│   - state.to_json() / RunState.from_json(agent, data) - persistence         │
+│   - Runner.run(agent, state) - resume from state                            │
 │                                                                             │
 │ Comparison with LangGraph:                                                  │
 │   LangGraph:                                                                │
 │     - interrupt() pauses execution                                          │
 │     - Command(resume=...) resumes with data                                 │
 │     - Checkpointer stores interrupted state                                 │
-│   OpenAI SDK:                                                               │
-│     - human_input_callback for input                                        │
-│     - Tool wrapping for approval gates                                      │
-│     - Custom state management                                               │
+│   OpenAI SDK (v0.8.0+):                                                     │
+│     - needs_approval parameter (cleaner!)                                   │
+│     - RunState.approve/reject (explicit!)                                   │
+│     - JSON serialization (portable!)                                        │
+│     >>> NOW COMPARABLE TO LANGGRAPH <<<                                     │
 │                                                                             │
-│ Production Implementation:                                                  │
-│   - ApprovalManager for tracking requests                                   │
-│   - Serialization for persistence                                           │
-│   - Async approval via webhooks/polling                                     │
-│   - Notification system for approvers                                       │
+│ Production Usage:                                                           │
+│   1. Mark sensitive tools with needs_approval=True                          │
+│   2. Run agent, check result.interruptions                                  │
+│   3. Serialize state.to_json(), store in DB                                 │
+│   4. Present approval UI to human                                           │
+│   5. Restore with RunState.from_json(agent, data)                           │
+│   6. Apply decisions, resume with Runner.run(agent, state)                  │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 """
 
 
 if __name__ == "__main__":
-    test_approval_flow()
-    test_state_serialization()
-    test_approve_reject()
+    asyncio.run(test_native_approval_flow())
+    asyncio.run(test_rejection_flow())
+    asyncio.run(test_conditional_approval())
+    asyncio.run(test_state_serialization())
+    asyncio.run(test_multiple_approvals())
+    test_sync_wrapper()
 
     print(SUMMARY)
