@@ -2,7 +2,178 @@
 
 ## Overview
 
-Verified LangGraph's Tool Calling, HITL (Human-in-the-Loop), Durable Execution, and Memory features to evaluate production readiness.
+This report summarizes the findings from evaluating LangGraph for production readiness based on the Agent Framework Evaluation Criteria (NIST AI RMF, WEF AI Agents in Action, IMDA Model AI Governance, OTel GenAI Semantic Conventions).
+
+## Test Environment
+
+- Python: 3.13
+- LangGraph: 0.2.x
+- LangChain: 0.3.x
+- langmem: 0.0.x
+
+---
+
+## Star Rating Criteria
+
+| Stars | Label | Definition | Judgment Criteria |
+|-------|-------|------------|-------------------|
+| ⭐ | Not Supported | No feature or broken | No documentation, doesn't work, requires complete custom implementation |
+| ⭐⭐ | Experimental | Works but major constraints, struggles even in PoC | Works but many pitfalls, lacking docs, unstable API |
+| ⭐⭐⭐ | PoC Ready | Basic functionality OK, usable for demo but needs additional work for production | Main cases work, weak on edge cases, monitoring/logging custom |
+| ⭐⭐⭐⭐ | Production Ready | Practical, can deploy to production with minor customization | Stable, well documented, production cases exist |
+| ⭐⭐⭐⭐⭐ | Production Recommended | Can use as-is in production, best practices established | Large-scale production cases, mature ecosystem |
+
+---
+
+## Prerequisite Parameters
+
+| Parameter | Value |
+|-----------|-------|
+| Autonomy | Approval Required |
+| Authority | Restricted Write |
+| Predictability | LLM Decision Involved |
+| Context | Internal Data |
+
+---
+
+## Evaluation Summary by Category
+
+### Coverage Summary (57 Items)
+
+| Category | Items | Good (⭐⭐⭐+) | Not Good (⭐⭐-) | Notes |
+|----------|-------|---------------|-----------------|-------|
+| TC (5) | 5 | 4 | 1 | Tool definition excellent, controllable automation weak |
+| HI (5) | 5 | 3 | 2 | interrupt() is solid, timeout/notification missing |
+| DU (6) | 6 | 4 | 2 | Checkpointer good, cleanup/concurrency custom |
+| ME (8) | 8 | 6 | 2 | Store + LangMem strong, cleanup/PII missing |
+| MA (5) | 5 | 3 | 2 | Supervisor pattern works, no native delegation |
+| GV (6) | 6 | 1 | 5 | interrupt() enables gates, policy/audit custom |
+| DR (6) | 6 | 1 | 5 | Checkpointer partial replay, idempotency custom |
+| CX (4) | 4 | 0 | 4 | State Migration weak, others custom |
+| OB (7) | 7 | 3 | 4 | LangSmith available but not OTel compliant |
+| TE (5) | 5 | 3 | 2 | Graph structure enables mocking, simulation custom |
+| **Total** | **57** | **28** | **29** | |
+
+### Fail-Close Items Status
+
+| Item | Rating | Impact | Applies To |
+|------|--------|--------|------------|
+| TE-01 Unit Test / Mocking | ⭐⭐⭐⭐ | **PASS** - Graph structure enables node-level mocking | All Authority |
+| GV-01 Destructive Operation Gate | ⭐⭐⭐ | **PASS** - interrupt() provides mechanism | Restricted Write+ |
+| DR-01 Replay | ⭐⭐ | **BORDERLINE** - Checkpointer partial, LLM not cached | Restricted Write+ |
+| DR-04 Idempotency | ⭐ | **FAIL** - No native support | Full Write |
+| CX-02 Rate Limit/Retry | ⭐ | **FAIL** - No native rate limiting | Restricted Write+ |
+| OB-01 Trace | ⭐⭐⭐ | **PASS** - LangSmith integration available | Full Write |
+| OB-06 SLO / Alerts | ⭐ | **FAIL** - No native SLO management | Full Write |
+
+> **Fail-Close Rule**: When any of these items is ⭐⭐ or below, overall rating cap is ⭐⭐ regardless of other categories.
+> TE-01 is required for all Authority levels. Other items apply based on write authority.
+
+---
+
+## Good Items (Rating ⭐⭐⭐ and Above)
+
+| Category | ID | Item | Rating | Notes |
+|----------|-----|------|--------|-------|
+| TC | TC-01 | Tool Definition | ⭐⭐⭐⭐⭐ | @tool decorator + StructuredTool, excellent docs |
+| TC | TC-03 | Parallel Execution | ⭐⭐⭐⭐⭐ | Multiple tool calls in one AIMessage |
+| TC | TC-04 | Error Handling | ⭐⭐⭐ | handle_tool_errors=True, retry is custom |
+| TC | TC-05 | Argument Validation | ⭐⭐⭐⭐ | Pydantic args_schema native support |
+| HI | HI-01 | Interrupt API | ⭐⭐⭐⭐⭐ | interrupt() is clean and intuitive |
+| HI | HI-02 | State Manipulation | ⭐⭐⭐⭐ | Full state access via get_state() |
+| HI | HI-03 | Resume Control | ⭐⭐⭐⭐⭐ | Command(resume=...) with goto/update |
+| DU | DU-01 | State Persistence | ⭐⭐⭐⭐ | Postgres/SQLite checkpointers |
+| DU | DU-02 | Process Resume | ⭐⭐⭐⭐ | Resume via thread_id works |
+| DU | DU-03 | HITL Persistence | ⭐⭐⭐⭐⭐ | Interrupts survive restart |
+| DU | DU-04 | Storage Options | ⭐⭐⭐⭐ | Memory/SQLite/Postgres |
+| ME | ME-01 | Short-term Memory | ⭐⭐⭐⭐ | add_messages reducer |
+| ME | ME-02 | Long-term Memory | ⭐⭐⭐⭐ | Store with namespace |
+| ME | ME-03 | Semantic Search | ⭐⭐⭐⭐⭐ | Embedding-based search |
+| ME | ME-04 | Memory API | ⭐⭐⭐⭐⭐ | put/get/search/delete |
+| ME | ME-05 | Agent Autonomous Management | ⭐⭐⭐⭐⭐ | LangMem tools (unique feature) |
+| ME | ME-06 | Auto Extraction | ⭐⭐⭐⭐ | LangMem background extraction |
+| MA | MA-03 | Hierarchical Process | ⭐⭐⭐⭐ | Supervisor pattern implementation |
+| MA | MA-04 | Routing | ⭐⭐⭐⭐ | Conditional edges, flexible |
+| MA | MA-05 | Shared Memory | ⭐⭐⭐⭐ | Store shared across threads |
+| GV | GV-01 | Destructive Operation Gate | ⭐⭐⭐ | interrupt() + custom policy engine |
+| OB | OB-01 | Trace | ⭐⭐⭐ | LangSmith integration available |
+| OB | OB-02 | Token Consumption | ⭐⭐⭐⭐ | Via LangSmith or response metadata |
+| OB | OB-04 | External Integration | ⭐⭐⭐⭐ | LangSmith native support |
+| TE | TE-01 | Unit Test / Mocking | ⭐⭐⭐⭐ | Graph structure enables node-level mocking, LLM injectable |
+| TE | TE-02 | Test Fixtures / State Injection | ⭐⭐⭐⭐ | Checkpointer allows state injection for testing |
+| TE | TE-05 | Evaluation Hooks | ⭐⭐⭐ | Node-based hooks possible, custom implementation |
+| DR | DR-01 | Replay | ⭐⭐ | Checkpointer partial support |
+
+---
+
+## Not Good Items (Rating ⭐⭐ and Below)
+
+| Category | ID | Item | Rating | Notes | Verification Script |
+|----------|-----|------|--------|-------|---------------------|
+| TC | TC-02 | Controllable Automation | ⭐⭐ | No native policy control | 19_governance_gate.py |
+| HI | HI-04 | Timeout | ⭐ | No native timeout | 16_production_considerations.py |
+| HI | HI-05 | Notification | ⭐ | No native notification | 16_production_considerations.py |
+| DU | DU-05 | Cleanup (TTL) | ⭐ | No auto-cleanup | 09_durable_production.py |
+| DU | DU-06 | Concurrent Access | ⭐⭐ | Race condition on same thread_id | 09_durable_production.py |
+| ME | ME-07 | Memory Cleanup (TTL) | ⭐ | No native memory TTL | 16_production_considerations.py |
+| ME | ME-08 | Embedding Cost | ⭐⭐ | Per-operation cost, no tracking | 16_production_considerations.py |
+| MA | MA-01 | Multiple Agent Definition | ⭐⭐⭐ | Programmatic, no declarative config | 17_multiagent_supervisor.py |
+| MA | MA-02 | Delegation | ⭐⭐ | Manual handoff tools required | 18_multiagent_swarm.py |
+| GV | GV-02 | Least Privilege / Scope | ⭐ | No native permission system | 20_governance_policy.py |
+| GV | GV-03 | Policy as Code | ⭐ | No native policy engine | 20_governance_policy.py |
+| GV | GV-04 | PII / Redaction | ⭐ | No native redaction | 21_governance_audit.py |
+| GV | GV-05 | Tenant / Purpose Binding | ⭐ | No native purpose binding | - |
+| GV | GV-06 | Audit Trail Completeness | ⭐ | No native audit logging | 21_governance_audit.py |
+| DR | DR-02 | Evidence Reference | ⭐ | No native evidence collection | 23_determinism_evidence.py |
+| DR | DR-03 | Non-determinism Isolation | ⭐ | No native LLM isolation mode | 23_determinism_evidence.py |
+| DR | DR-04 | Idempotency | ⭐ | No native idempotency keys | 22_determinism_replay.py |
+| DR | DR-05 | Plan Diff | ⭐ | No native diff visualization | 24_determinism_recovery.py |
+| DR | DR-06 | Failure Recovery | ⭐ | No native recovery mechanism | 24_determinism_recovery.py |
+| CX | CX-01 | Auth / Credential Management | ⭐ | No native OAuth/token management | 25_connectors_auth.py |
+| CX | CX-02 | Rate Limit / Retry | ⭐ | No native rate limiting | 26_connectors_ratelimit.py |
+| CX | CX-03 | Async Job Pattern | ⭐ | No native job tracking | 27_connectors_async.py |
+| CX | CX-04 | State Migration | ⭐⭐ | Schema changes break old checkpoints, no migration support | 27_connectors_async.py |
+| OB | OB-03 | Log Output | ⭐⭐ | No native structured logging | - |
+| OB | OB-05 | OTel Compliance | ⭐ | No native OpenTelemetry support | 28_observability_otel.py |
+| OB | OB-06 | SLO / Alerts | ⭐ | No native SLO management | 29_observability_guard.py |
+| OB | OB-07 | Cost Guard | ⭐ | No native budget/kill switch | 29_observability_guard.py |
+| TE | TE-03 | Simulation / User Emulation | ⭐⭐ | No native user simulation, custom implementation | - |
+| TE | TE-04 | Dry Run / Sandbox Mode | ⭐⭐ | No native dry run mode, custom tool wrapper needed | - |
+
+---
+
+## Verification Scripts
+
+| Script | Categories | Key Verification Items |
+|--------|------------|------------------------|
+| 01_quickstart.py | - | Basic LangGraph structure |
+| 02_tool_definition.py | TC | TC-01: @tool, StructuredTool, args_schema |
+| 03_tool_execution.py | TC | TC-01, TC-03: ToolNode, parallel calls |
+| 04_tool_error_handling.py | TC | TC-04: Error handling, retry |
+| 05_hitl_interrupt.py | HI | HI-01, HI-02: interrupt(), get_state() |
+| 06_hitl_approve_reject_edit.py | HI | HI-03: Command(resume=...) patterns |
+| 07_durable_basic.py | DU | DU-01: Checkpoint behavior |
+| 08_durable_hitl.py | DU | DU-03: HITL persistence |
+| 09_durable_production.py | DU | DU-05, DU-06: Cleanup, concurrency |
+| 11_memory_store_basic.py | ME | ME-01, ME-04: Store CRUD |
+| 12_memory_semantic_search.py | ME | ME-03: Semantic search |
+| 13_memory_cross_thread.py | ME | ME-02: Cross-thread persistence |
+| 14_memory_langmem_tools.py | ME | ME-05: Agent memory tools |
+| 15_memory_background_extraction.py | ME | ME-06: Auto extraction |
+| 16_production_considerations.py | HI, DU, ME | Overall production summary |
+| 17_multiagent_supervisor.py | MA | MA-01, MA-03, MA-05: Supervisor pattern |
+| 18_multiagent_swarm.py | MA | MA-02, MA-04: Swarm/handoff pattern |
+| 19_governance_gate.py | GV, TC | GV-01, TC-02: Approval gate |
+| 20_governance_policy.py | GV | GV-02, GV-03: Policy engine |
+| 21_governance_audit.py | GV | GV-04, GV-06: PII, audit trail |
+| 22_determinism_replay.py | DR | DR-01, DR-04: Replay, idempotency |
+| 23_determinism_evidence.py | DR | DR-02, DR-03: Evidence, determinism |
+| 24_determinism_recovery.py | DR | DR-05, DR-06: Plan diff, recovery |
+| 25_connectors_auth.py | CX | CX-01: OAuth, secret management |
+| 26_connectors_ratelimit.py | CX | CX-02: Rate limiting, circuit breaker |
+| 27_connectors_async.py | CX | CX-03, CX-04: Async jobs, schema |
+| 28_observability_otel.py | OB | OB-05: OpenTelemetry integration |
+| 29_observability_guard.py | OB | OB-06, OB-07: SLO, cost guard |
 
 ---
 
@@ -51,14 +222,6 @@ result = graph.invoke({"messages": [("user", "Hello")]})
 | `compile()` | Convert to executable graph |
 | Node function | `State → State` (diff return OK) |
 
-### Output
-
-```
-LangGraph is a framework for building stateful, multi-actor applications
-with LLMs by modeling them as graphs where nodes represent functions/agents
-and edges represent the flow of information.
-```
-
 ---
 
 # Part 2: Tool Calling
@@ -103,26 +266,6 @@ search_tool = StructuredTool.from_function(
 )
 ```
 
-### Output
-
-```
-Tool: get_weather_simple
-Args Schema: {'properties': {'city': {'type': 'string'}}, 'required': ['city']}
-
-Tool: get_weather_typed
-Args Schema: {'properties': {
-    'city': {'description': 'The city name to get weather for', 'type': 'string'},
-    'unit': {'description': 'Temperature unit', 'default': 'celsius', 'type': 'string'}
-}, 'required': ['city']}
-
-Tool: get_weather_pydantic
-Args Schema: {'properties': {
-    'city': {'description': 'The city name', 'type': 'string'},
-    'unit': {'description': 'Temperature unit', 'default': 'celsius', 'type': 'string'},
-    'include_forecast': {'description': 'Include 3-day forecast', 'default': false}
-}, 'required': ['city']}
-```
-
 ### Comparison
 
 | Method | Pros | Cons | Recommended For |
@@ -146,51 +289,6 @@ START → agent → [tool_calls?] → tools → agent → ... → END
                     END
 ```
 
-### Key Code
-
-```python
-# Bind tools to LLM
-llm_with_tools = llm.bind_tools(tools)
-
-# ToolNode (built-in)
-graph_builder.add_node("tools", ToolNode(tools))
-
-# Conditional branching
-def should_continue(state: State) -> str:
-    last_message = state["messages"][-1]
-    if last_message.tool_calls:
-        return "tools"
-    return END
-
-graph_builder.add_conditional_edges("agent", should_continue, ["tools", END])
-
-# Loop back
-graph_builder.add_edge("tools", "agent")
-```
-
-### Output
-
-```
-=== TEST: Single Tool ===
-Query: What's the weather in Tokyo?
-  [0] HumanMessage: What's the weather in Tokyo?
-  [1] AIMessage: tool_calls=['get_weather']
-  [2] ToolMessage: Sunny, 22°C
-  [3] AIMessage: The current weather in Tokyo is sunny with a temperature of 22°C.
-
-=== TEST: Multiple Tools ===
-Query: What's the weather in Tokyo and the stock price of AAPL?
-  [1] AIMessage: tool_calls=['get_weather', 'get_stock_price']  ← Parallel calls
-  [2] ToolMessage: Sunny, 22°C
-  [3] ToolMessage: $178.50
-  [4] AIMessage: Weather: Sunny, 22°C / AAPL: $178.50
-
-=== TEST: Unknown Data ===
-Query: What's the weather in Antarctica?
-  [2] ToolMessage: No data for Antarctica
-  [3] AIMessage: I wasn't able to get weather data for Antarctica...
-```
-
 ### Verified Behavior
 
 | Item | Behavior |
@@ -205,67 +303,6 @@ Query: What's the weather in Antarctica?
 ## 2.3 Error Handling (04_tool_error_handling.py)
 
 **Goal**: Verify behavior when tools fail
-
-### Default Behavior (handle_tool_errors=True)
-
-```python
-graph_builder.add_node("tools", ToolNode(tools, handle_tool_errors=True))
-```
-
-### Output
-
-```
-=== DEFAULT ERROR HANDLING ===
-
-Message flow:
-  HumanMessage: Process the number 'abc' using validation_error_tool
-  AIMessage: tool_calls=['validation_error_tool']
-  ToolMessage: Error: ValueError('Expected number, got: abc') Please fix your mistakes.
-  AIMessage: The validation_error_tool rejected the input 'abc' because it's not a number...
-
-Observation: ToolNode catches exception, returns error as ToolMessage
-LLM receives error and explains it to user
-```
-
-### Custom Retry Implementation
-
-```python
-class RetryToolNode:
-    def __init__(self, tools: list, max_retries: int = 2):
-        self.tools_by_name = {t.name: t for t in tools}
-        self.max_retries = max_retries
-
-    def __call__(self, state: State) -> State:
-        for tool_call in last_message.tool_calls:
-            for attempt in range(self.max_retries + 1):
-                try:
-                    result = self.tools_by_name[tool_call["name"]].invoke(tool_call["args"])
-                    break
-                except Exception as e:
-                    last_error = e
-            # Handle success or final failure
-```
-
-### Output (Retry)
-
-```
-=== RETRY ERROR HANDLING ===
-Testing flaky API with retry...
-  Attempt 1 failed: API temporarily unavailable
-  Attempt 2 failed: API temporarily unavailable
-  Attempt 3 succeeded!
-
-Final response: The flaky API call succeeded: "API result for: test query"
-```
-
-### Error Message Format
-
-```python
-ToolMessage:
-  tool_call_id: toolu_01N8VVACcSYxSxivTAoCXS86
-  content: "Error: TimeoutError('Operation timed out after 100s') Please fix your mistakes."
-  status: error
-```
 
 ### Summary
 
@@ -285,14 +322,6 @@ ToolMessage:
 
 **Goal**: Verify interrupt/resume behavior
 
-### Graph Structure
-
-```
-START → agent → [tool_calls?] → human_approval → tools → agent → ... → END
-                     ↓ no
-                    END
-```
-
 ### Core APIs
 
 | API | Role |
@@ -302,120 +331,11 @@ START → agent → [tool_calls?] → human_approval → tools → agent → ...
 | `graph.get_state(config)` | Get current state (`state.next` shows interrupt position) |
 | Checkpointer | State persistence (required for interrupt) |
 
-### Key Code
-
-```python
-from langgraph.types import interrupt, Command
-from langgraph.checkpoint.memory import MemorySaver
-
-def human_approval(state: State) -> State:
-    tool_call = state["messages"][-1].tool_calls[0]
-
-    # Graph stops here, invoke() returns
-    approval = interrupt({
-        "tool_name": tool_call["name"],
-        "tool_args": tool_call["args"],
-        "message": f"Approve {tool_call['name']}?"
-    })
-
-    if not approval.get("approved", False):
-        raise ValueError("Rejected")
-    return state
-
-# Checkpointer required
-checkpointer = MemorySaver()
-graph = graph_builder.compile(checkpointer=checkpointer)
-```
-
-### Execution Flow
-
-```python
-config = {"configurable": {"thread_id": "test-thread-1"}}
-
-# 1. First invoke → interrupted
-result = graph.invoke({"messages": [...]}, config=config)
-
-# 2. Check state
-state = graph.get_state(config)
-print(state.next)  # ('human_approval',) ← interrupt position
-print(state.tasks[0].interrupts[0].value)  # value passed to interrupt()
-
-# 3. Resume
-result = graph.invoke(Command(resume={"approved": True}), config=config)
-```
-
-### Output
-
-```
-=== Starting conversation ===
-Graph state: StateSnapshot(
-    next=('human_approval',),  # ← stopped here
-    ...
-)
-
-=== Interrupted! Waiting at: ('human_approval',) ===
-Interrupt value: {
-    'tool_name': 'send_email',
-    'tool_args': {'to': 'bob@example.com', 'subject': 'Hello', 'body': 'How are you?'},
-}
-
-=== Resuming with approval ===
-Final result: The email has been sent successfully to bob@example.com.
-```
-
 ---
 
 ## 3.2 Approve / Reject / Edit (06_hitl_approve_reject_edit.py)
 
 **Goal**: Verify three approval patterns
-
-### Implementation Pattern
-
-```python
-def human_approval(state: State) -> Command:
-    tool_call = state["messages"][-1].tool_calls[0]
-
-    decision = interrupt({
-        "tool_name": tool_call["name"],
-        "tool_args": tool_call["args"],
-        "options": ["approve", "reject", "edit"],
-    })
-
-    action = decision.get("action", "reject")
-
-    if action == "approve":
-        return Command(goto="tools")
-
-    elif action == "reject":
-        rejection_msg = ToolMessage(
-            content=f"Rejected: {decision.get('reason')}",
-            tool_call_id=tool_call["id"],
-        )
-        return Command(goto="agent", update={"messages": [rejection_msg]})
-
-    elif action == "edit":
-        edited_args = decision.get("edited_args")
-        last_message.tool_calls[0]["args"] = edited_args
-        return Command(goto="tools", update={"messages": [last_message]})
-```
-
-### Output
-
-```
-=== Test 1: APPROVE ===
-Resuming with: {'action': 'approve'}
-Final response: The email has been successfully sent to alice@example.com.
-
-=== Test 2: REJECT ===
-Resuming with: {'action': 'reject', 'reason': 'This looks like spam'}
-Final response: I understand your concern. The email does appear to have
-characteristics commonly associated with spam. Would you like to send
-a legitimate email instead?
-
-=== Test 3: EDIT ===
-Resuming with: {'action': 'edit', 'edited_args': {'to': 'correct@example.com', ...}}
-Final response: The email has been sent successfully to correct@example.com.
-```
 
 ### Summary
 
@@ -427,164 +347,17 @@ Final response: The email has been sent successfully to correct@example.com.
 
 ---
 
-## 3.3 Checkpointer Comparison
-
-| Checkpointer | Use Case | Persistence | Setup |
-|--------------|----------|-------------|-------|
-| `MemorySaver` | Dev/Test | In-process only | None |
-| `SqliteSaver` | Small production | File | DB path |
-| `PostgresSaver` | Production recommended | Full | Connection string |
-
-### PostgresSaver Example
-
-```python
-from langgraph_checkpoint_postgres import PostgresSaver
-
-checkpointer = PostgresSaver.from_conn_string(
-    "postgresql://user:pass@localhost:5432/langgraph"
-)
-graph = graph_builder.compile(checkpointer=checkpointer)
-```
-
----
-
 # Part 4: Durable Execution
 
 ## 4.1 Basic Checkpoint Behavior (07_durable_basic.py)
 
-**Goal**: Understand when and what is checkpointed
-
-### Checkpoint Timing
-
-```
-=== Executing graph ===
-  [Step1] Executing... (step_count: 0)
-  [Step2] Executing... (step_count: 1)
-  [Step3] Executing... (step_count: 2)
-
-Checkpoint history:
-  [0] next=(), step_count=3        ← After step3
-  [1] next=('step3',), step_count=2  ← After step2
-  [2] next=('step2',), step_count=1  ← After step1
-  [3] next=('step1',), step_count=0  ← Initial
-  [4] next=('__start__',)            ← Before start
-```
-
 **Observation**: Checkpoint saved AFTER each node completes.
-
-### Resume After Restart
-
-```python
-# Phase 1: Execute, stop after step1
-graph1 = build_graph()
-for chunk in graph1.stream(input, config):
-    if step1_done:
-        break  # Simulate crash
-
-# Phase 2: New graph instance (simulates restart)
-graph2 = build_graph()
-state = graph2.get_state(config)
-# state.next = ('step2',) ← Recovered!
-
-# Phase 3: Resume
-result = graph2.invoke(None, config=config)
-# Continues from step2
-```
-
-**Output**:
-```
-[Phase 1] First execution...
-  [Step1] Executing...
-  Step1 completed, simulating crash...
-  State after crash: next=('step2',), step_count=1
-
-[Phase 2] After restart...
-  Recovered state: next=('step2',), step_count=1
-  Recovered metadata: {'step1_done': True}
-
-[Phase 3] Resuming...
-  [Step2] Executing...
-  [Step3] Executing...
-  Final step_count: 3
-```
-
----
 
 ## 4.2 HITL + Durability (08_durable_hitl.py)
 
-**Goal**: Verify interrupt survives process restart
-
-### Test Flow
-
-```
-[Phase 1] Start → Agent → interrupt() → STOP
-
-[Phase 2] Restart (new graph instance)
-  Recovered state: next=('human_approval',)
-  Recovered interrupt value: {tool_name, tool_args, ...}
-
-[Phase 3] Resume with Command(resume={"action": "approve"})
-  → Tool executes → Complete
-```
-
-**Output**:
-```
-[Phase 1] Starting execution...
-  Interrupted at: ('human_approval',)
-  Interrupt value: {'tool_name': 'send_email', 'tool_args': {...}}
-
-[Phase 2] Simulating restart...
-  Recovered state: next=('human_approval',)
-  Recovered interrupt: {'tool_name': 'send_email', ...}
-
-[Phase 3] Resuming with approval...
-  Final response: Email sent successfully
-  Final approval_count: 1
-```
-
 **Key Finding**: HITL interrupts are fully durable. Server can restart without losing pending approvals.
 
----
-
 ## 4.3 Production Concerns (09_durable_production.py)
-
-### Concurrent Execution (Same thread_id)
-
-```
-Starting 3 concurrent invocations on same thread_id...
-
-Results: [(0, 1), (2, 1), (1, 1)]  ← All got counter=1
-Errors: []
-Final counter: 1  ← Last write wins
-```
-
-**Problem**: Concurrent invoke() on same thread_id causes race conditions.
-
-**Solution**: Generate unique thread_id per conversation.
-
-### Checkpoint Size Growth
-
-```
-1 threads, 1 msgs each: 4.0 KB
-2 threads, 2 msgs each: 8.0 KB
-5 threads, 5 msgs each: 20.0 KB
-10 threads, 10 msgs each: 40.0 KB
-```
-
-**Observation**: Linear growth. Full state snapshot per checkpoint.
-
-### Thread Listing
-
-```python
-# No built-in API - must query storage directly
-cursor.execute("SELECT DISTINCT thread_id FROM checkpoints")
-threads = cursor.fetchall()
-# ['list-test-0', 'list-test-1', ...]
-```
-
-**Problem**: No API to list all thread_ids.
-
-### Summary
 
 | Concern | Status | Solution |
 |---------|--------|----------|
@@ -600,221 +373,7 @@ threads = cursor.fetchall()
 
 # Part 5: Memory
 
-## 5.1 Store Basic Operations (11_memory_store_basic.py)
-
-**Goal**: Verify InMemoryStore basic CRUD
-
-### Key Code
-
-```python
-from langgraph.store.memory import InMemoryStore
-
-store = InMemoryStore()
-
-# Put - save with namespace (like folders)
-store.put(("users", "user_123"), "preferences", {"theme": "dark", "language": "ja"})
-
-# Get - retrieve by namespace and key
-item = store.get(("users", "user_123"), "preferences")
-# item.value = {"theme": "dark", "language": "ja"}
-
-# Search - list items in namespace
-results = store.search(("users", "user_123"))
-
-# Delete
-store.delete(("users", "user_123"), "preferences")
-```
-
-### Output
-
-```
-PUT: ('users', 'user_123'), key='preferences', value={'theme': 'dark', 'language': 'ja'}
-GET: Item(namespace=['users', 'user_123'], key='preferences', value={'theme': 'dark', 'language': 'ja'})
-Search ('users', 'user_123'): 2 items found
-GET after delete: None
-```
-
-### Summary
-
-| Operation | Description |
-|-----------|-------------|
-| `put(namespace, key, value)` | Save/update data |
-| `get(namespace, key)` | Retrieve (None if not found) |
-| `search(namespace)` | List items in namespace |
-| `delete(namespace, key)` | Remove data |
-
----
-
-## 5.2 Semantic Search (12_memory_semantic_search.py)
-
-**Goal**: Verify embedding-based semantic search
-
-### Key Code
-
-```python
-from langgraph.store.memory import InMemoryStore
-
-store = InMemoryStore(
-    index={
-        "dims": 1536,  # text-embedding-3-small dimension
-        "embed": "openai:text-embedding-3-small",
-    }
-)
-
-# Store with 'text' field for semantic indexing
-store.put(("memories",), "food_1", {"text": "I love Italian food, especially pasta"})
-store.put(("memories",), "work_1", {"text": "I work as a software engineer"})
-
-# Semantic search
-results = store.search(
-    ("memories",),
-    query="What food do I like?",
-    limit=3
-)
-for item in results:
-    print(f"[{item.score:.4f}] {item.value['text']}")
-```
-
-### Expected Output
-
-```
-Query: 'What food do I like?'
-  [0.8523] I love Italian food, especially pasta
-  [0.4102] I work as a software engineer
-
-Query: 'dietary restrictions'
-  [0.7891] I'm allergic to shellfish and peanuts
-```
-
-### Summary
-
-| Feature | Description |
-|---------|-------------|
-| Embedding model | OpenAI text-embedding-3-small |
-| Similarity | Cosine similarity (0-1) |
-| Filter | Metadata-based filtering supported |
-| Score > 0.8 | High relevance |
-| Score < 0.5 | Low relevance |
-
----
-
-## 5.3 Cross-Thread Persistence (13_memory_cross_thread.py)
-
-**Goal**: Verify memory sharing across different thread_ids
-
-### Architecture
-
-```
-┌─────────────────────────────────────────────────────┐
-│                 Store (Long-term)                    │
-│  ┌─────────────────┐    ┌─────────────────┐        │
-│  │  users/alice/   │    │  users/bob/     │        │
-│  │  - memory_0     │    │  - memory_0     │        │
-│  │  - memory_1     │    │                 │        │
-│  └─────────────────┘    └─────────────────┘        │
-└─────────────────────────────────────────────────────┘
-                ↑ shared across all threads
-
-┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
-│ thread-1 │  │ thread-2 │  │ thread-3 │  │ thread-4 │
-│ (Alice)  │  │ (Alice)  │  │  (Bob)   │  │ (Alice)  │
-└──────────┘  └──────────┘  └──────────┘  └──────────┘
-      ↓              ↓              ↓              ↓
-┌─────────────────────────────────────────────────────┐
-│            Checkpointer (Short-term)                 │
-│      Each thread has separate conversation           │
-└─────────────────────────────────────────────────────┘
-```
-
-### Key Points
-
-- **Store**: Cross-thread, namespace isolates users
-- **Checkpointer**: Per-thread conversation history
-- Session 1 saves memory → Session 2 (different thread) can access
-
----
-
-## 5.4 LangMem Memory Tools (14_memory_langmem_tools.py)
-
-**Goal**: Verify agent-managed memory with LangMem
-
-### Key Code
-
-```python
-from langmem import create_manage_memory_tool, create_search_memory_tool
-from langgraph.prebuilt import create_react_agent
-from langgraph.store.memory import InMemoryStore
-
-store = InMemoryStore(index={"dims": 1536, "embed": "openai:text-embedding-3-small"})
-
-# Create memory tools with namespace template
-manage_memory = create_manage_memory_tool(namespace=("memories", "{user_id}"))
-search_memory = create_search_memory_tool(namespace=("memories", "{user_id}"))
-
-agent = create_react_agent(
-    "openai:gpt-4o",
-    tools=[manage_memory, search_memory],
-    store=store,
-)
-
-# Agent autonomously saves/searches memories
-response = agent.invoke(
-    {"messages": [{"role": "user", "content": "My name is Taro. Please remember this."}]},
-    config={"configurable": {"user_id": "user_123"}}
-)
-```
-
-### Agent Behavior
-
-| Action | When |
-|--------|------|
-| Save memory | User says "remember" or shares personal info |
-| Search memory | User asks about past information |
-| Update memory | User corrects previous information |
-
-### Unique Feature
-
-LangMem's memory tools are **not available in CrewAI**. Agent has explicit control over memory operations.
-
----
-
-## 5.5 Background Extraction (15_memory_background_extraction.py)
-
-**Goal**: Verify automatic fact extraction from conversations
-
-### Key Code
-
-```python
-from langmem import create_memory_store_manager
-
-manager = create_memory_store_manager(
-    "openai:gpt-4o",
-    namespace=("memories", "{user_id}"),
-)
-
-conversation = [
-    {"role": "user", "content": "I love Italian food but I'm allergic to shellfish."},
-    {"role": "assistant", "content": "I'll note your food preferences and allergy."},
-]
-
-# Extract memories asynchronously
-await manager.ainvoke(
-    {"messages": conversation},
-    config={"configurable": {"user_id": "user_123"}},
-    store=store,
-)
-```
-
-### Extraction Behavior
-
-- Identifies user facts, preferences, constraints
-- Creates semantic embeddings for search
-- Updates conflicting information (consolidation)
-- Runs asynchronously (background processing)
-
----
-
-## 5.6 Memory Summary
+## 5.1-5.5 Memory Features
 
 | Feature | Support | Notes |
 |---------|---------|-------|
@@ -822,229 +381,514 @@ await manager.ainvoke(
 | Namespace | ✅ Full | Folder-like structure |
 | Semantic search | ✅ Full | OpenAI embeddings |
 | Cross-thread | ✅ Full | Store shared across threads |
-| LangMem tools | ✅ Full | Agent-managed memory |
+| LangMem tools | ✅ Full | Agent-managed memory (unique) |
 | Background extraction | ✅ Full | Auto fact extraction |
 | Production storage | ✅ PostgresStore | pgvector for vectors |
 | Cleanup | ❌ None | No TTL/auto-cleanup |
 | Privacy | ⚠️ Manual | PII handling needed |
 
-### CrewAI Comparison
+---
 
-| Feature | LangGraph + LangMem | CrewAI |
-|---------|---------------------|--------|
-| Basic structure | Store + namespace | ChromaDB + SQLite |
-| Embedding | OpenAI (configurable) | OpenAI (configurable) |
-| Semantic search | ✅ | ✅ |
-| Cross-session | ✅ | ✅ |
-| Agent memory tools | ✅ **Unique** | ❌ |
-| Background extraction | ✅ **Unique** | ❌ |
-| Production storage | PostgresStore | External DB migration |
+# Part 6: Production Considerations (16_production_considerations.py)
+
+| Concern | Status | Notes |
+|---------|--------|-------|
+| Audit logging | ⚠️ Manual | No built-in audit |
+| Timeout | ⚠️ Manual | No built-in mechanism |
+| Notification | ⚠️ Manual | No built-in system |
+| Authorization | ⚠️ Manual | No built-in RBAC |
+| Memory cleanup | ⚠️ Manual | No TTL |
+| Embedding costs | ⚠️ Manual | Per-operation cost |
 
 ---
 
-# Part 6: Production Considerations
+# Part 7: Multi-Agent (MA)
 
-## 6.1 Audit Logging
+## 7.1 Supervisor Pattern (17_multiagent_supervisor.py)
 
-**Current**: None
+**Goal**: Evaluate multi-agent hierarchical coordination
+
+### Architecture
+
+```
+START → supervisor → [route] → researcher/writer/reviewer → supervisor → ... → END
+```
+
+### Evaluation
+
+| Item | Rating | Notes |
+|------|--------|-------|
+| MA-01 Multiple Agent Definition | ⭐⭐⭐ | Programmatic, create_react_agent available |
+| MA-03 Hierarchical Process | ⭐⭐⭐⭐ | Supervisor pattern works well |
+| MA-05 Shared Memory | ⭐⭐⭐⭐ | Store with namespace isolation |
+
+### Comparison with CrewAI
+
+| Aspect | LangGraph | CrewAI |
+|--------|-----------|--------|
+| Agent Definition | Programmatic | Declarative (role/goal/backstory) |
+| Manager | Custom supervisor node | Process.hierarchical built-in |
+| Memory Sharing | Store API | Native agent memory |
+| Flexibility | High (more code) | Lower (more abstraction) |
+
+---
+
+## 7.2 Swarm/Handoff Pattern (18_multiagent_swarm.py)
+
+**Goal**: Evaluate agent-to-agent delegation
+
+### Evaluation
+
+| Item | Rating | Notes |
+|------|--------|-------|
+| MA-02 Delegation | ⭐⭐ | Manual handoff tools required |
+| MA-04 Routing | ⭐⭐⭐⭐ | Conditional edges, flexible routing |
+
+### Key Finding
+
+CrewAI's `allow_delegation=True` is one line; LangGraph requires manual handoff tool creation and routing logic. LangGraph is more flexible but more verbose.
+
+---
+
+# Part 8: Governance (GV)
+
+## 8.1 Approval Gate (19_governance_gate.py)
+
+**Goal**: Evaluate destructive operation gate (GV-01, TC-02)
+
+### Implementation
 
 ```python
-def human_approval(state: State) -> Command:
-    decision = interrupt({...})
+def approval_gate(state: State) -> Command:
+    tool_call = state["messages"][-1].tool_calls[0]
 
-    # Manual logging required
-    audit_logger.log(
-        timestamp=datetime.now(),
-        user_id=???,  # Where to get this?
-        action=decision["action"],
-        tool_name=tool_call["name"],
-        tool_args=tool_call["args"],
+    risk_level, requires_approval, reason = policy_engine.evaluate(
+        tool_call["name"], tool_call["args"]
     )
+
+    if requires_approval:
+        decision = interrupt({
+            "action": "approve_destructive",
+            "tool_name": tool_call["name"],
+            "risk_level": risk_level.value,
+        })
+
+        if decision.get("action") != "approve":
+            return Command(goto="agent", update={"messages": [rejection_msg]})
+
+    return Command(goto="tools")
 ```
 
-**Challenges**:
-- How to pass approver's user ID
-- Need to include metadata in `Command(resume=...)`
+### Evaluation
+
+| Item | Rating | Notes |
+|------|--------|-------|
+| GV-01 Destructive Operation Gate | ⭐⭐⭐ | interrupt() provides mechanism, policy custom |
+| TC-02 Controllable Automation | ⭐⭐ | No native policy control |
 
 ---
 
-## 6.2 Timeout
+## 8.2 Policy Engine (20_governance_policy.py)
 
-**Current**: None. Waits forever when interrupted.
+**Goal**: Evaluate least privilege and policy as code (GV-02, GV-03)
 
-```python
-# Implement via background job
-async def cleanup_stale_threads():
-    for thread_id in get_active_threads():
-        state = graph.get_state({"configurable": {"thread_id": thread_id}})
-        if state.next and is_stale(state.created_at, timeout=timedelta(hours=24)):
-            graph.invoke(
-                Command(resume={"action": "reject", "reason": "Timeout"}),
-                config={"configurable": {"thread_id": thread_id}}
-            )
-```
+### Evaluation
 
-**Challenges**:
-- No thread listing API (checkpointer dependent)
-- Timeout handling logic is custom implementation
+| Item | Rating | Notes |
+|------|--------|-------|
+| GV-02 Least Privilege | ⭐ | No native permission system |
+| GV-03 Policy as Code | ⭐ | No native policy engine |
+
+### Custom Implementation Required
+
+- PermissionManager with scopes
+- PolicyEngine with rule evaluation
+- Principal/identity management
 
 ---
 
-## 6.3 Notification System
+## 8.3 Audit Trail & PII (21_governance_audit.py)
 
-**Current**: None
+**Goal**: Evaluate audit logging and PII redaction (GV-04, GV-06)
 
-```python
-state = graph.get_state(config)
-if state.next:
-    # Manual notification
-    slack.send(f"Pending approval: {state.tasks[0].interrupts[0].value}")
-    email.send(approver, "Approval Request", ...)
-```
+### Evaluation
 
----
+| Item | Rating | Notes |
+|------|--------|-------|
+| GV-04 PII / Redaction | ⭐ | No native redaction |
+| GV-06 Audit Trail | ⭐ | No native audit logging |
 
-## 6.4 Authorization (Who Can Approve)
+### Custom Implementation Required
 
-**Current**: None
-
-```python
-def human_approval(state: State) -> Command:
-    decision = interrupt({
-        "required_role": "admin",
-        ...
-    })
-
-    # Validate user info passed during resume
-    if not has_role(decision["approver_id"], "admin"):
-        raise PermissionError("Not authorized")
-```
+- PIIRedactor with regex patterns
+- AuditTrail with hash chain for tamper detection
 
 ---
 
-## 6.5 Web API Integration Pattern
+# Part 9: Determinism & Replay (DR)
+
+## 9.1 Replay & Idempotency (22_determinism_replay.py)
+
+**Goal**: Evaluate replay and exactly-once execution (DR-01, DR-04)
+
+### Checkpointer-Based Replay
 
 ```python
-from fastapi import FastAPI
-from langgraph.types import Command
+def replay_from_checkpoint(graph, config: dict, target_step: int):
+    states = list(graph.get_state_history(config))
+    target_state = states[-(target_step + 1)]
 
-app = FastAPI()
-
-@app.post("/chat")
-async def chat(message: str, thread_id: str):
-    config = {"configurable": {"thread_id": thread_id}}
-    result = graph.invoke({"messages": [("user", message)]}, config=config)
-
-    state = graph.get_state(config)
-    if state.next:
-        return {
-            "status": "pending_approval",
-            "thread_id": thread_id,
-            "approval_request": state.tasks[0].interrupts[0].value
+    replay_config = {
+        **config,
+        "configurable": {
+            **config["configurable"],
+            "checkpoint_id": target_state.config["configurable"]["checkpoint_id"]
         }
-    return {
-        "status": "completed",
-        "response": result["messages"][-1].content
     }
+    return graph.invoke(None, config=replay_config)
+```
 
-@app.post("/approve/{thread_id}")
-async def approve(thread_id: str, decision: dict):
-    config = {"configurable": {"thread_id": thread_id}}
-    result = graph.invoke(Command(resume=decision), config=config)
-    return {"response": result["messages"][-1].content}
+### Evaluation
+
+| Item | Rating | Notes |
+|------|--------|-------|
+| DR-01 Replay | ⭐⭐ | Checkpointer partial, LLM responses not cached |
+| DR-04 Idempotency | ⭐ | No native idempotency key support |
+
+### Key Finding
+
+Checkpointer captures state snapshots but doesn't record LLM responses. Replay restarts execution from a checkpoint but may produce different outputs due to LLM non-determinism.
+
+---
+
+## 9.2 Evidence Collection (23_determinism_evidence.py)
+
+**Goal**: Evaluate evidence reference and non-determinism isolation (DR-02, DR-03)
+
+### Evaluation
+
+| Item | Rating | Notes |
+|------|--------|-------|
+| DR-02 Evidence Reference | ⭐ | No native evidence collection |
+| DR-03 Non-determinism Isolation | ⭐ | No native LLM isolation mode |
+
+---
+
+## 9.3 Recovery (24_determinism_recovery.py)
+
+**Goal**: Evaluate plan diff and failure recovery (DR-05, DR-06)
+
+### Evaluation
+
+| Item | Rating | Notes |
+|------|--------|-------|
+| DR-05 Plan Diff | ⭐ | No native diff visualization |
+| DR-06 Failure Recovery | ⭐ | No native rollback/compensate |
+
+---
+
+# Part 10: Connectors (CX)
+
+## 10.1 Authentication (25_connectors_auth.py)
+
+**Goal**: Evaluate OAuth and credential management (CX-01)
+
+### Evaluation
+
+| Item | Rating | Notes |
+|------|--------|-------|
+| CX-01 Auth / Credential Management | ⭐ | No native OAuth/secret management |
+
+### Custom Implementation Required
+
+- SecretManager for credential storage
+- OAuthClient for token management
+- CredentialProvider for just-in-time injection
+
+---
+
+## 10.2 Rate Limiting (26_connectors_ratelimit.py)
+
+**Goal**: Evaluate rate limiting and retry (CX-02)
+
+### Implementation Pattern
+
+```python
+class RateLimitedToolNode:
+    def __init__(self, tools: list, rate_limiter: RateLimiter):
+        self.tool_node = ToolNode(tools)
+        self.rate_limiter = rate_limiter
+
+    def __call__(self, state: State) -> State:
+        tool_call = state["messages"][-1].tool_calls[0]
+        if not self.rate_limiter.acquire(tool_call["name"]):
+            return {"messages": [ToolMessage(content="Rate limit exceeded", ...)]}
+        return self.tool_node(state)
+```
+
+### Evaluation
+
+| Item | Rating | Notes |
+|------|--------|-------|
+| CX-02 Rate Limit / Retry | ⭐ | No native rate limiting |
+
+### Custom Implementation Required
+
+- TokenBucket for rate limiting
+- ExponentialBackoff for retry delays
+- CircuitBreaker for fail-fast pattern
+
+---
+
+## 10.3 Async Jobs & State Migration (27_connectors_async.py)
+
+**Goal**: Evaluate async job pattern and state migration (CX-03, CX-04)
+
+### Evaluation
+
+| Item | Rating | Notes |
+|------|--------|-------|
+| CX-03 Async Job Pattern | ⭐ | No native job tracking |
+| CX-04 State Migration | ⭐⭐ | Schema changes break old checkpoints, no migration mapper |
+
+### Key Finding (CX-04 State Migration)
+
+When state schema is modified (e.g., adding a new field), old checkpoints cannot be loaded without manual migration. This is a critical gap for long-running agents where code versions change during execution.
+
+---
+
+# Part 11: Observability (OB)
+
+## 11.1 OpenTelemetry (28_observability_otel.py)
+
+**Goal**: Evaluate OTel GenAI Semantic Conventions compliance (OB-05)
+
+### Evaluation
+
+| Item | Rating | Notes |
+|------|--------|-------|
+| OB-05 OTel Compliance | ⭐ | No native OTel support |
+
+### Key Finding
+
+LangSmith provides observability but is vendor-specific. OTel GenAI Semantic Conventions require custom instrumentation.
+
+---
+
+## 11.2 SLO & Cost Guard (29_observability_guard.py)
+
+**Goal**: Evaluate SLO management and cost guard (OB-06, OB-07)
+
+### Evaluation
+
+| Item | Rating | Notes |
+|------|--------|-------|
+| OB-06 SLO / Alerts | ⭐ | No native SLO management |
+| OB-07 Cost Guard | ⭐ | No native budget/kill switch |
+
+### Custom Implementation Required
+
+- MetricsCollector for latency/error tracking
+- SLOManager for SLO definition and monitoring
+- CostGuard for budget tracking and kill switch
+
+---
+
+# Part 12: Testing & Evaluation (TE)
+
+## 12.1 Unit Test / Mocking
+
+**Goal**: Evaluate testability of LangGraph agents
+
+### Evaluation
+
+| Item | Rating | Notes |
+|------|--------|-------|
+| TE-01 Unit Test / Mocking | ⭐⭐⭐⭐ | Graph structure allows node-level testing with mock LLMs |
+
+### Key Finding
+
+LangGraph's graph architecture enables clean separation of concerns:
+- Nodes can be tested individually with mock inputs
+- LLM can be replaced with a fake LLM (e.g., `FakeListChatModel`)
+- State transitions can be verified independently
+
+```python
+# Mock LLM injection example
+from langchain_core.language_models.fake_chat_models import FakeListChatModel
+
+fake_llm = FakeListChatModel(responses=["Fixed response"])
+# Inject into graph node for deterministic testing
 ```
 
 ---
-# Part 7: Evaluation Summary
 
-## Good
+## 12.2 Test Fixtures / State Injection
 
-| Category | Item | Rating | Notes |
-|----------|------|--------|-------|
-| Tool Calling | `@tool` decorator | ⭐⭐⭐⭐⭐ | Simple, Pydantic support |
-| Tool Calling | `ToolNode` | ⭐⭐⭐⭐⭐ | Auto execution, error handling |
-| Tool Calling | Parallel tool calls | ⭐⭐⭐⭐⭐ | Multiple calls in one message |
-| HITL | `interrupt()` API | ⭐⭐⭐⭐⭐ | Simple and intuitive |
-| HITL | `Command` control | ⭐⭐⭐⭐⭐ | Flexible goto, update, resume |
-| HITL | Approve/Reject/Edit | ⭐⭐⭐⭐⭐ | All patterns implementable |
-| Durable | State persistence | ⭐⭐⭐⭐ | Postgres/SQLite support |
-| Durable | Durable execution | ⭐⭐⭐⭐ | Resume after restart |
-| Durable | HITL durability | ⭐⭐⭐⭐⭐ | Interrupts survive restart |
-| Memory | Store API | ⭐⭐⭐⭐⭐ | Simple CRUD, namespace |
-| Memory | Semantic search | ⭐⭐⭐⭐⭐ | OpenAI embeddings |
-| Memory | Cross-thread | ⭐⭐⭐⭐⭐ | Shared across sessions |
-| Memory | LangMem tools | ⭐⭐⭐⭐⭐ | Agent-managed memory |
-| Memory | Background extraction | ⭐⭐⭐⭐ | Auto fact extraction |
+**Goal**: Evaluate state injection for mid-point testing
 
-## Not Good
+### Evaluation
 
-| Category | Item | Rating | Notes |
-|----------|------|--------|-------|
-| Tool Calling | Tool retry | ⭐⭐ | Custom implementation needed |
-| HITL | Audit logging | ⭐ | Fully custom |
-| HITL | Timeout | ⭐ | No mechanism |
-| HITL | Notification | ⭐ | No mechanism |
-| HITL | Authorization | ⭐ | No mechanism |
-| Durable | Checkpoint cleanup | ⭐ | No auto-cleanup |
-| Durable | Thread listing | ⭐ | No built-in API |
-| Durable | Concurrent access | ⭐⭐ | Race condition possible |
-| Memory | Memory cleanup | ⭐ | No TTL/auto-cleanup |
-| Memory | Privacy/PII | ⭐⭐ | Manual compliance |
-| Memory | Embedding costs | ⭐⭐ | Per-operation cost |
+| Item | Rating | Notes |
+|------|--------|-------|
+| TE-02 Test Fixtures / State Injection | ⭐⭐⭐⭐ | Checkpointer enables loading specific states for testing |
+
+### Key Finding
+
+Checkpointer's `get_state_history()` allows loading any historical state, enabling "5th turn only" testing without executing turns 1-4.
 
 ---
 
-# Part 8: Conclusion
+## 12.3 Simulation / User Emulation
 
-## Tool Calling
+**Goal**: Evaluate automated agent testing with virtual users
 
-**High maturity.** Simple definition with `@tool` decorator, automatic execution with `ToolNode`. Error handling works with `handle_tool_errors=True`. Production needs custom retry and circuit breaker implementation.
+### Evaluation
 
-## HITL
+| Item | Rating | Notes |
+|------|--------|-------|
+| TE-03 Simulation / User Emulation | ⭐⭐ | No native simulation, custom implementation required |
 
-**High maturity as "graph execution interrupt/resume".** `interrupt()` / `Command(resume=...)` API is clean and intuitive.
+---
 
-However, production-required features are not provided:
+## 12.4 Dry Run / Sandbox Mode
 
-- Approval workflow management (who approved what, when)
-- Timeout / escalation
-- Notification / reminders
-- Permission management
+**Goal**: Evaluate tool execution without side effects
 
-**These appear to be by design - "not LangGraph's responsibility".**
+### Evaluation
 
-## Durable Execution
+| Item | Rating | Notes |
+|------|--------|-------|
+| TE-04 Dry Run / Sandbox Mode | ⭐⭐ | No native dry run mode, tool wrapper needed |
 
-**Solid foundation.** Checkpoints saved after each node, state fully recoverable after restart. HITL interrupts persist correctly.
+---
 
-Production concerns:
-- No auto-cleanup (checkpoint size grows indefinitely)
-- No thread listing API (must query storage directly)
-- Concurrent access on same thread_id causes race conditions
+## 12.5 Evaluation Hooks
 
-## Memory
+**Goal**: Evaluate integration of eval functions into execution pipeline
 
-**Strong capabilities.** Store API is simple and effective. Semantic search with embeddings works well. LangMem provides unique agent-managed memory features not available in CrewAI.
+### Evaluation
 
-Production concerns:
-- Embedding costs per operation
-- No built-in TTL/cleanup
-- Privacy/PII compliance needs manual implementation
-- Background extraction quality varies
+| Item | Rating | Notes |
+|------|--------|-------|
+| TE-05 Evaluation Hooks | ⭐⭐⭐ | Node-based architecture allows custom eval nodes |
 
-## Additional Development for Production
+### Key Finding
 
-1. **Approval Management Service** - Manage pending threads, provide UI
-2. **Audit Log Service** - Record all operations
-3. **Notification Service** - Slack/Email integration
-4. **Authorization Service** - Role-based approval permissions
-5. **Background Jobs** - Timeout handling, checkpoint cleanup, memory cleanup
-6. **Retry/Circuit Breaker** - Stabilize external API calls
-7. **Thread Management** - Track active threads, cleanup old ones
-8. **Unique ID Generation** - Prevent concurrent access issues
-9. **Memory Lifecycle** - TTL, cleanup, cost monitoring
+LangGraph's node-based architecture allows inserting evaluation nodes between steps, but no native eval framework integration (LangSmith SDK provides partial support).
 
-**Effort estimate**: 3-5x the graph execution portion for surrounding systems.
+---
+
+# CrewAI Comparison
+
+| Aspect | LangGraph | CrewAI |
+|--------|-----------|--------|
+| Learning Curve | Steep (low-level) | Gentle (high-level) |
+| Abstraction Level | Low (graph primitives) | High (Crew/Agent/Task) |
+| Multi-Agent (MA) | ⭐⭐⭐ Custom | ⭐⭐⭐⭐⭐ Native |
+| Delegation | ⭐⭐ Manual handoff | ⭐⭐⭐⭐⭐ allow_delegation=True |
+| HITL (HI) | ⭐⭐⭐⭐ interrupt() | ⭐⭐⭐ human_input=True |
+| Durable (DU) | ⭐⭐⭐⭐ Checkpointer | ⭐⭐⭐⭐ @persist |
+| Memory (ME) | ⭐⭐⭐⭐⭐ LangMem (unique) | ⭐⭐⭐ Basic |
+| Governance (GV) | ⭐⭐ Custom | ⭐ Custom |
+| Determinism (DR) | ⭐⭐ Partial | ⭐ Custom |
+| Observability (OB) | ⭐⭐⭐ LangSmith | ⭐⭐ Limited |
+| Flexibility | ⭐⭐⭐⭐⭐ Full control | ⭐⭐⭐ Constrained |
+
+---
+
+# Recommendations
+
+## When to Use LangGraph
+
+- Complex workflows requiring fine-grained control
+- Custom graph topologies (not just sequential/hierarchical)
+- Advanced HITL with approve/reject/edit patterns
+- Long-term memory with semantic search (LangMem)
+- Integration with LangSmith ecosystem
+- Research and experimentation
+
+## When NOT to Use LangGraph (Without Custom Implementation)
+
+- Production systems requiring audit trails
+- Regulatory compliance (PII, GDPR)
+- High-volume API integrations (rate limiting needed)
+- Systems requiring replay/debugging capability
+- Teams preferring declarative agent definitions
+
+## Production Deployment Requirements
+
+For production deployment with external writes, implement:
+
+1. **Governance Layer** (Scripts 19-21)
+   - ApprovalGate with interrupt()
+   - PolicyEngine for least privilege
+   - PIIRedactor for sensitive data
+   - AuditTrail with hash chain
+
+2. **Determinism Infrastructure** (Scripts 22-24)
+   - ReplayLogger for LLM response caching
+   - IdempotencyKeyManager for exactly-once
+   - RecoveryManager for failure handling
+
+3. **Connector Abstractions** (Scripts 25-27)
+   - TokenBucket + ExponentialBackoff
+   - OAuthClient + SecretManager
+   - AsyncJobExecutor
+
+4. **Observability Stack** (Scripts 28-29)
+   - OTel instrumentation
+   - SLOManager + CostGuard
+
+---
+
+# Conclusion
+
+## Overall Rating: ⭐⭐⭐ (PoC Ready - with Fail-Close considered)
+
+LangGraph provides excellent low-level primitives but lacks enterprise-grade safety features:
+
+### Strengths (⭐⭐⭐⭐+)
+
+- **HITL**: interrupt()/Command API is elegant and powerful
+- **Memory**: Store + LangMem provides unique agent-managed memory
+- **Durable Execution**: Checkpointer enables reliable state persistence
+- **Tool Calling**: Excellent tool definition and execution support
+- **Flexibility**: Full control over graph structure and execution
+
+### Weaknesses (⭐ to ⭐⭐)
+
+- **Governance**: No policy engine, audit trail, or PII handling
+- **Determinism**: Partial replay support, no idempotency
+- **Connectors**: No rate limiting, OAuth, or async job patterns
+- **Observability**: LangSmith-centric, not OTel compliant
+
+### Fail-Close Impact
+
+Due to ⭐ ratings on:
+- DR-04 (Idempotency) - Full Write
+- CX-02 (Rate Limit/Retry) - Restricted Write+
+- OB-06 (SLO/Alerts) - Full Write
+
+**The overall rating is bounded by these critical gaps for production systems with external writes.**
+
+TE-01 (Unit Test/Mocking) passes at ⭐⭐⭐⭐, which is a strength for development workflow.
+
+### vs CrewAI
+
+- **LangGraph** excels at flexibility, HITL, and memory
+- **CrewAI** excels at multi-agent collaboration and ease of use
+- Both require similar custom work for governance and determinism
+
+### Recommendation
+
+Use LangGraph when you need:
+1. Complex graph topologies
+2. Advanced HITL patterns
+3. LangMem for agent-managed memory
+4. Full control over execution flow
+
+Build the surrounding infrastructure using the verification scripts (17-29) as templates.
 
 ---
 
@@ -1067,6 +911,19 @@ lang-graph-sample/
 ├── 14_memory_langmem_tools.py    # LangMem agent tools
 ├── 15_memory_background_extraction.py # Background extraction
 ├── 16_production_considerations.py # Overall production summary
+├── 17_multiagent_supervisor.py   # Supervisor pattern
+├── 18_multiagent_swarm.py        # Swarm/handoff pattern
+├── 19_governance_gate.py         # Approval gate
+├── 20_governance_policy.py       # Policy engine
+├── 21_governance_audit.py        # Audit trail & PII
+├── 22_determinism_replay.py      # Replay & idempotency
+├── 23_determinism_evidence.py    # Evidence collection
+├── 24_determinism_recovery.py    # Plan diff & recovery
+├── 25_connectors_auth.py         # OAuth & credentials
+├── 26_connectors_ratelimit.py    # Rate limiting
+├── 27_connectors_async.py        # Async jobs & schema
+├── 28_observability_otel.py      # OpenTelemetry
+├── 29_observability_guard.py     # SLO & cost guard
 ├── REPORT.md                     # This report
 ├── REPORT_ja.md                  # Japanese version
 ├── .env.example                  # Environment template

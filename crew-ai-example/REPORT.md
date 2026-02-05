@@ -37,7 +37,7 @@ This report summarizes the findings from evaluating CrewAI for production readin
 
 ## Evaluation Summary by Category
 
-### Coverage Summary (52 Items)
+### Coverage Summary (57 Items)
 
 | Category | Items | Good (⭐⭐⭐+) | Not Good (⭐⭐-) | Notes |
 |----------|-------|---------------|-----------------|-------|
@@ -48,20 +48,25 @@ This report summarizes the findings from evaluating CrewAI for production readin
 | MA (5) | 5 | 5 | 0 | **Strongest category** |
 | GV (6) | 6 | 0 | 6 | No native governance |
 | DR (6) | 6 | 0 | 6 | No native determinism/replay |
-| CX (4) | 4 | 1 | 3 | Only schema validation available |
+| CX (4) | 4 | 0 | 4 | State Migration weak, others custom |
 | OB (7) | 7 | 3 | 4 | Basic logging good, OTel/SLO missing |
-| **Total** | **52** | **20** | **32** | |
+| TE (5) | 5 | 0 | 5 | High abstraction makes mocking difficult |
+| **Total** | **57** | **19** | **38** | |
 
 ### Fail-Close Items Status
 
-| Item | Rating | Impact |
-|------|--------|--------|
-| GV-01 Destructive Operation Gate | ⭐ | **FAIL** - No native gate |
-| DR-01 Replay | ⭐ | **FAIL** - No native replay |
-| DR-04 Idempotency | ⭐ | **FAIL** - No native idempotency |
-| CX-02 Rate Limit/Retry | ⭐ | **FAIL** - No native rate limiting |
+| Item | Rating | Impact | Applies To |
+|------|--------|--------|------------|
+| TE-01 Unit Test / Mocking | ⭐⭐ | **BORDERLINE** - High abstraction makes mocking difficult | All Authority |
+| GV-01 Destructive Operation Gate | ⭐ | **FAIL** - No native gate | Restricted Write+ |
+| DR-01 Replay | ⭐ | **FAIL** - No native replay | Restricted Write+ |
+| DR-04 Idempotency | ⭐ | **FAIL** - No native idempotency | Full Write |
+| CX-02 Rate Limit/Retry | ⭐ | **FAIL** - No native rate limiting | Restricted Write+ |
+| OB-01 Trace | ⭐⭐⭐ | **PASS** - verbose=True shows execution | Full Write |
+| OB-06 SLO / Alerts | ⭐ | **FAIL** - No native SLO management | Full Write |
 
 > **Fail-Close Rule**: When any of these items is ⭐⭐ or below, overall rating cap is ⭐⭐ regardless of other categories.
+> TE-01 is required for all Authority levels. Other items apply based on write authority.
 
 ---
 
@@ -88,7 +93,6 @@ This report summarizes the findings from evaluating CrewAI for production readin
 | OB | OB-01 | Trace | ⭐⭐⭐ | verbose=True shows execution path |
 | OB | OB-02 | Token Consumption | ⭐⭐⭐⭐ | result.token_usage native |
 | OB | OB-03 | Log Output | ⭐⭐⭐ | output_log_file exists, not structured |
-| CX | CX-04 | Schema/Contract | ⭐⭐⭐ | Pydantic available for validation |
 
 ---
 
@@ -124,10 +128,16 @@ This report summarizes the findings from evaluating CrewAI for production readin
 | CX | CX-01 | Auth / Credential Management | ⭐ | No native OAuth/token management | 20_connectors_auth.py |
 | CX | CX-02 | Rate Limit / Retry | ⭐ | No native rate limiting | 04_tool_error_handling.py |
 | CX | CX-03 | Async Job Pattern | ⭐ | No native job tracking | 21_connectors_async.py |
+| CX | CX-04 | State Migration | ⭐⭐ | @persist schema changes break old states | 21_connectors_async.py |
 | OB | OB-04 | External Integration | ⭐⭐ | No native LangSmith/Langfuse integration | - |
 | OB | OB-05 | OTel Compliance | ⭐ | No native OpenTelemetry support | 22_observability_otel.py |
 | OB | OB-06 | SLO / Alerts | ⭐ | No native SLO management | 23_observability_guard.py |
 | OB | OB-07 | Cost Guard | ⭐ | No native budget/kill switch | 23_observability_guard.py |
+| TE | TE-01 | Unit Test / Mocking | ⭐⭐ | High abstraction requires unittest.mock patching | - |
+| TE | TE-02 | Test Fixtures / State Injection | ⭐⭐ | @persist exists but no state injection API | - |
+| TE | TE-03 | Simulation / User Emulation | ⭐⭐ | No native simulation, custom implementation | - |
+| TE | TE-04 | Dry Run / Sandbox Mode | ⭐ | No native dry run mode | - |
+| TE | TE-05 | Evaluation Hooks | ⭐⭐ | Limited callback support, no eval framework | - |
 
 ---
 
@@ -187,26 +197,33 @@ This report summarizes the findings from evaluating CrewAI for production readin
 
 ### Weaknesses (⭐ to ⭐⭐)
 
-1. **Governance** (GV: All ⭐)
+1. **Testing & Evaluation** (TE: All ⭐ to ⭐⭐) - **NEW**
+   - High abstraction makes mocking difficult (TE-01: ⭐⭐)
+   - No state injection API for mid-point testing
+   - No native dry run mode
+   - **Fails TE-01 threshold for production**
+
+2. **Governance** (GV: All ⭐)
    - No built-in gate for destructive operations
    - No policy engine
    - No PII redaction
    - No audit trail
    - **All custom implementation required**
 
-2. **Determinism & Replay** (DR: All ⭐)
+3. **Determinism & Replay** (DR: All ⭐)
    - No replay capability
    - No evidence collection
    - No idempotency support
    - No recovery mechanism
    - **All custom implementation required**
 
-3. **Connectors** (CX: 3 of 4 are ⭐)
+4. **Connectors** (CX: All ⭐ to ⭐⭐)
    - No OAuth/credential management
    - No rate limiting
    - No async job pattern
+   - State Migration weak (schema changes break old states)
 
-4. **Advanced Observability** (OB-05 to OB-07: ⭐)
+5. **Advanced Observability** (OB-05 to OB-07: ⭐)
    - No OpenTelemetry support
    - No SLO management
    - No cost guard/kill switch
@@ -225,6 +242,7 @@ This report summarizes the findings from evaluating CrewAI for production readin
 | Durable (DU) | ⭐⭐⭐⭐ @persist | ⭐⭐⭐⭐ Checkpointer |
 | Governance (GV) | ⭐ Custom | ⭐ Custom |
 | Determinism (DR) | ⭐ Custom | ⭐⭐ Partial |
+| Testing (TE) | ⭐⭐ Difficult | ⭐⭐⭐⭐ Graph enables mocking |
 | Observability (OB) | ⭐⭐ Limited | ⭐⭐⭐⭐ LangSmith |
 | Production Track Record | Growing | Established |
 
@@ -289,21 +307,26 @@ CrewAI excels at multi-agent collaboration but lacks enterprise-grade safety fea
 - Basic HITL (HI-01, HI-03)
 - Basic observability (OB-01 to OB-03)
 
-❌ **Not Supported (⭐):**
+❌ **Not Supported (⭐ to ⭐⭐):**
+- Testing & Evaluation (TE-01 to TE-05) - **NEW FAIL-CLOSE ITEM**
 - Governance (GV-01 to GV-06)
 - Determinism & Replay (DR-01 to DR-06)
-- Advanced Connectors (CX-01 to CX-03)
+- Advanced Connectors (CX-01 to CX-04)
 - Advanced Observability (OB-05 to OB-07)
 
 ### Fail-Close Impact
 
-Due to ⭐ ratings on:
-- GV-01 (Destructive Operation Gate)
-- DR-01 (Replay)
-- DR-04 (Idempotency)
-- CX-02 (Rate Limit/Retry)
+Due to ⭐ to ⭐⭐ ratings on:
+- **TE-01 (Unit Test/Mocking): ⭐⭐** - All Authority (BORDERLINE)
+- GV-01 (Destructive Operation Gate): ⭐ - Restricted Write+
+- DR-01 (Replay): ⭐ - Restricted Write+
+- DR-04 (Idempotency): ⭐ - Full Write
+- CX-02 (Rate Limit/Retry): ⭐ - Restricted Write+
+- OB-06 (SLO/Alerts): ⭐ - Full Write
 
-**The overall rating is capped at ⭐⭐ for production systems with external writes.**
+**The overall rating is capped at ⭐⭐ for production systems.**
+
+TE-01 at ⭐⭐ is particularly concerning as it applies to ALL Authority levels, making debugging difficult even for read-only agents.
 
 ### Recommendation
 
