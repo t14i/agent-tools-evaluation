@@ -1,0 +1,11 @@
+[project]
+name = "openai-sdk-example"
+version = "0.1.0"
+description = "OpenAI Agents SDK verification for production readiness"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "openai-agents>=0.7.0",
+    "openai>=1.60.0",
+    "pydantic>=2.0.0",
+]
