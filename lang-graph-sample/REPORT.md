@@ -42,16 +42,16 @@ This report summarizes the findings from evaluating LangGraph for production rea
 
 | Category | Items | Good (⭐⭐⭐+) | Not Good (⭐⭐-) | Notes |
 |----------|-------|---------------|-----------------|-------|
-| TC (5) | 5 | 4 | 1 | Tool definition excellent, controllable automation weak |
-| HI (5) | 5 | 3 | 2 | interrupt() is solid, timeout/notification missing |
-| DU (6) | 6 | 4 | 2 | Checkpointer good, cleanup/concurrency custom |
-| ME (8) | 8 | 6 | 2 | Store + LangMem strong, cleanup/PII missing |
-| MA (5) | 5 | 3 | 2 | Supervisor pattern works, no native delegation |
-| GV (6) | 6 | 1 | 5 | interrupt() enables gates, policy/audit custom |
-| DR (6) | 6 | 1 | 5 | Checkpointer partial replay, idempotency custom |
-| CX (4) | 4 | 0 | 4 | State Migration weak, others custom |
-| OB (7) | 7 | 3 | 4 | LangSmith available but not OTel compliant |
-| TE (5) | 5 | 3 | 2 | Graph structure enables mocking, simulation custom |
+| TC: Tool Calling | 5 | 4 | 1 | Tool definition excellent, controllable automation weak |
+| HI: Human-in-the-Loop | 5 | 3 | 2 | interrupt() is solid, timeout/notification missing |
+| DU: Durable Execution | 6 | 4 | 2 | Checkpointer good, cleanup/concurrency custom |
+| ME: Memory | 8 | 6 | 2 | Store + LangMem strong, cleanup/PII missing |
+| MA: Multi-Agent | 5 | 3 | 2 | Supervisor pattern works, no native delegation |
+| GV: Governance | 6 | 1 | 5 | interrupt() enables gates, policy/audit custom |
+| DR: Determinism & Replay | 6 | 1 | 5 | Checkpointer partial replay, idempotency custom |
+| CX: Connectors & Ops | 4 | 0 | 4 | State Migration weak, others custom |
+| OB: Observability | 7 | 3 | 4 | LangSmith available but not OTel compliant |
+| TE: Testing & Evaluation | 5 | 3 | 2 | Graph structure enables mocking, simulation custom |
 | **Total** | **57** | **28** | **29** | |
 
 ### Fail-Close Items Status
@@ -75,34 +75,34 @@ This report summarizes the findings from evaluating LangGraph for production rea
 
 | Category | ID | Item | Rating | Notes |
 |----------|-----|------|--------|-------|
-| TC | TC-01 | Tool Definition | ⭐⭐⭐⭐⭐ | @tool decorator + StructuredTool, excellent docs |
-| TC | TC-03 | Parallel Execution | ⭐⭐⭐⭐⭐ | Multiple tool calls in one AIMessage |
-| TC | TC-04 | Error Handling | ⭐⭐⭐ | handle_tool_errors=True, retry is custom |
-| TC | TC-05 | Argument Validation | ⭐⭐⭐⭐ | Pydantic args_schema native support |
-| HI | HI-01 | Interrupt API | ⭐⭐⭐⭐⭐ | interrupt() is clean and intuitive |
-| HI | HI-02 | State Manipulation | ⭐⭐⭐⭐ | Full state access via get_state() |
-| HI | HI-03 | Resume Control | ⭐⭐⭐⭐⭐ | Command(resume=...) with goto/update |
-| DU | DU-01 | State Persistence | ⭐⭐⭐⭐ | Postgres/SQLite checkpointers |
-| DU | DU-02 | Process Resume | ⭐⭐⭐⭐ | Resume via thread_id works |
-| DU | DU-03 | HITL Persistence | ⭐⭐⭐⭐⭐ | Interrupts survive restart |
-| DU | DU-04 | Storage Options | ⭐⭐⭐⭐ | Memory/SQLite/Postgres |
-| ME | ME-01 | Short-term Memory | ⭐⭐⭐⭐ | add_messages reducer |
-| ME | ME-02 | Long-term Memory | ⭐⭐⭐⭐ | Store with namespace |
-| ME | ME-03 | Semantic Search | ⭐⭐⭐⭐⭐ | Embedding-based search |
-| ME | ME-04 | Memory API | ⭐⭐⭐⭐⭐ | put/get/search/delete |
-| ME | ME-05 | Agent Autonomous Management | ⭐⭐⭐⭐⭐ | LangMem tools (unique feature) |
-| ME | ME-06 | Auto Extraction | ⭐⭐⭐⭐ | LangMem background extraction |
-| MA | MA-03 | Hierarchical Process | ⭐⭐⭐⭐ | Supervisor pattern implementation |
-| MA | MA-04 | Routing | ⭐⭐⭐⭐ | Conditional edges, flexible |
-| MA | MA-05 | Shared Memory | ⭐⭐⭐⭐ | Store shared across threads |
-| GV | GV-01 | Destructive Operation Gate | ⭐⭐⭐ | interrupt() + custom policy engine |
-| OB | OB-01 | Trace | ⭐⭐⭐ | LangSmith integration available |
-| OB | OB-02 | Token Consumption | ⭐⭐⭐⭐ | Via LangSmith or response metadata |
-| OB | OB-04 | External Integration | ⭐⭐⭐⭐ | LangSmith native support |
-| TE | TE-01 | Unit Test / Mocking | ⭐⭐⭐⭐ | Graph structure enables node-level mocking, LLM injectable |
-| TE | TE-02 | Test Fixtures / State Injection | ⭐⭐⭐⭐ | Checkpointer allows state injection for testing |
-| TE | TE-05 | Evaluation Hooks | ⭐⭐⭐ | Node-based hooks possible, custom implementation |
-| DR | DR-01 | Replay | ⭐⭐ | Checkpointer partial support |
+| Tool Calling | TC-01 | Tool Definition | ⭐⭐⭐⭐⭐ | @tool decorator + StructuredTool, excellent docs |
+| Tool Calling | TC-03 | Parallel Execution | ⭐⭐⭐⭐⭐ | Multiple tool calls in one AIMessage |
+| Tool Calling | TC-04 | Error Handling | ⭐⭐⭐ | handle_tool_errors=True, retry is custom |
+| Tool Calling | TC-05 | Argument Validation | ⭐⭐⭐⭐ | Pydantic args_schema native support |
+| Human-in-the-Loop | HI-01 | Interrupt API | ⭐⭐⭐⭐⭐ | interrupt() is clean and intuitive |
+| Human-in-the-Loop | HI-02 | State Manipulation | ⭐⭐⭐⭐ | Full state access via get_state() |
+| Human-in-the-Loop | HI-03 | Resume Control | ⭐⭐⭐⭐⭐ | Command(resume=...) with goto/update |
+| Durable Execution | DU-01 | State Persistence | ⭐⭐⭐⭐ | Postgres/SQLite checkpointers |
+| Durable Execution | DU-02 | Process Resume | ⭐⭐⭐⭐ | Resume via thread_id works |
+| Durable Execution | DU-03 | HITL Persistence | ⭐⭐⭐⭐⭐ | Interrupts survive restart |
+| Durable Execution | DU-04 | Storage Options | ⭐⭐⭐⭐ | Memory/SQLite/Postgres |
+| Memory | ME-01 | Short-term Memory | ⭐⭐⭐⭐ | add_messages reducer |
+| Memory | ME-02 | Long-term Memory | ⭐⭐⭐⭐ | Store with namespace |
+| Memory | ME-03 | Semantic Search | ⭐⭐⭐⭐⭐ | Embedding-based search |
+| Memory | ME-04 | Memory API | ⭐⭐⭐⭐⭐ | put/get/search/delete |
+| Memory | ME-05 | Agent Autonomous Management | ⭐⭐⭐⭐⭐ | LangMem tools (unique feature) |
+| Memory | ME-06 | Auto Extraction | ⭐⭐⭐⭐ | LangMem background extraction |
+| Multi-Agent | MA-03 | Hierarchical Process | ⭐⭐⭐⭐ | Supervisor pattern implementation |
+| Multi-Agent | MA-04 | Routing | ⭐⭐⭐⭐ | Conditional edges, flexible |
+| Multi-Agent | MA-05 | Shared Memory | ⭐⭐⭐⭐ | Store shared across threads |
+| Governance | GV-01 | Destructive Operation Gate | ⭐⭐⭐ | interrupt() + custom policy engine |
+| Observability | OB-01 | Trace | ⭐⭐⭐ | LangSmith integration available |
+| Observability | OB-02 | Token Consumption | ⭐⭐⭐⭐ | Via LangSmith or response metadata |
+| Observability | OB-04 | External Integration | ⭐⭐⭐⭐ | LangSmith native support |
+| Testing & Evaluation | TE-01 | Unit Test / Mocking | ⭐⭐⭐⭐ | Graph structure enables node-level mocking, LLM injectable |
+| Testing & Evaluation | TE-02 | Test Fixtures / State Injection | ⭐⭐⭐⭐ | Checkpointer allows state injection for testing |
+| Testing & Evaluation | TE-05 | Evaluation Hooks | ⭐⭐⭐ | Node-based hooks possible, custom implementation |
+| Determinism & Replay | DR-01 | Replay | ⭐⭐ | Checkpointer partial support |
 
 ---
 
@@ -110,35 +110,35 @@ This report summarizes the findings from evaluating LangGraph for production rea
 
 | Category | ID | Item | Rating | Notes | Verification Script |
 |----------|-----|------|--------|-------|---------------------|
-| TC | TC-02 | Controllable Automation | ⭐⭐ | No native policy control | 19_governance_gate.py |
-| HI | HI-04 | Timeout | ⭐ | No native timeout | 16_production_considerations.py |
-| HI | HI-05 | Notification | ⭐ | No native notification | 16_production_considerations.py |
-| DU | DU-05 | Cleanup (TTL) | ⭐ | No auto-cleanup | 09_durable_production.py |
-| DU | DU-06 | Concurrent Access | ⭐⭐ | Race condition on same thread_id | 09_durable_production.py |
-| ME | ME-07 | Memory Cleanup (TTL) | ⭐ | No native memory TTL | 16_production_considerations.py |
-| ME | ME-08 | Embedding Cost | ⭐⭐ | Per-operation cost, no tracking | 16_production_considerations.py |
-| MA | MA-01 | Multiple Agent Definition | ⭐⭐⭐ | Programmatic, no declarative config | 17_multiagent_supervisor.py |
-| MA | MA-02 | Delegation | ⭐⭐ | Manual handoff tools required | 18_multiagent_swarm.py |
-| GV | GV-02 | Least Privilege / Scope | ⭐ | No native permission system | 20_governance_policy.py |
-| GV | GV-03 | Policy as Code | ⭐ | No native policy engine | 20_governance_policy.py |
-| GV | GV-04 | PII / Redaction | ⭐ | No native redaction | 21_governance_audit.py |
-| GV | GV-05 | Tenant / Purpose Binding | ⭐ | No native purpose binding | - |
-| GV | GV-06 | Audit Trail Completeness | ⭐ | No native audit logging | 21_governance_audit.py |
-| DR | DR-02 | Evidence Reference | ⭐ | No native evidence collection | 23_determinism_evidence.py |
-| DR | DR-03 | Non-determinism Isolation | ⭐ | No native LLM isolation mode | 23_determinism_evidence.py |
-| DR | DR-04 | Idempotency | ⭐ | No native idempotency keys | 22_determinism_replay.py |
-| DR | DR-05 | Plan Diff | ⭐ | No native diff visualization | 24_determinism_recovery.py |
-| DR | DR-06 | Failure Recovery | ⭐ | No native recovery mechanism | 24_determinism_recovery.py |
-| CX | CX-01 | Auth / Credential Management | ⭐ | No native OAuth/token management | 25_connectors_auth.py |
-| CX | CX-02 | Rate Limit / Retry | ⭐ | No native rate limiting | 26_connectors_ratelimit.py |
-| CX | CX-03 | Async Job Pattern | ⭐ | No native job tracking | 27_connectors_async.py |
-| CX | CX-04 | State Migration | ⭐⭐ | Schema changes break old checkpoints, no migration support | 27_connectors_async.py |
-| OB | OB-03 | Log Output | ⭐⭐ | No native structured logging | - |
-| OB | OB-05 | OTel Compliance | ⭐ | No native OpenTelemetry support | 28_observability_otel.py |
-| OB | OB-06 | SLO / Alerts | ⭐ | No native SLO management | 29_observability_guard.py |
-| OB | OB-07 | Cost Guard | ⭐ | No native budget/kill switch | 29_observability_guard.py |
-| TE | TE-03 | Simulation / User Emulation | ⭐⭐ | No native user simulation, custom implementation | - |
-| TE | TE-04 | Dry Run / Sandbox Mode | ⭐⭐ | No native dry run mode, custom tool wrapper needed | - |
+| Tool Calling | TC-02 | Controllable Automation | ⭐⭐ | No native policy control | 19_governance_gate.py |
+| Human-in-the-Loop | HI-04 | Timeout | ⭐ | No native timeout | 16_production_considerations.py |
+| Human-in-the-Loop | HI-05 | Notification | ⭐ | No native notification | 16_production_considerations.py |
+| Durable Execution | DU-05 | Cleanup (TTL) | ⭐ | No auto-cleanup | 09_durable_production.py |
+| Durable Execution | DU-06 | Concurrent Access | ⭐⭐ | Race condition on same thread_id | 09_durable_production.py |
+| Memory | ME-07 | Memory Cleanup (TTL) | ⭐ | No native memory TTL | 16_production_considerations.py |
+| Memory | ME-08 | Embedding Cost | ⭐⭐ | Per-operation cost, no tracking | 16_production_considerations.py |
+| Multi-Agent | MA-01 | Multiple Agent Definition | ⭐⭐⭐ | Programmatic, no declarative config | 17_multiagent_supervisor.py |
+| Multi-Agent | MA-02 | Delegation | ⭐⭐ | Manual handoff tools required | 18_multiagent_swarm.py |
+| Governance | GV-02 | Least Privilege / Scope | ⭐ | No native permission system | 20_governance_policy.py |
+| Governance | GV-03 | Policy as Code | ⭐ | No native policy engine | 20_governance_policy.py |
+| Governance | GV-04 | PII / Redaction | ⭐ | No native redaction | 21_governance_audit.py |
+| Governance | GV-05 | Tenant / Purpose Binding | ⭐ | No native purpose binding | - |
+| Governance | GV-06 | Audit Trail Completeness | ⭐ | No native audit logging | 21_governance_audit.py |
+| Determinism & Replay | DR-02 | Evidence Reference | ⭐ | No native evidence collection | 23_determinism_evidence.py |
+| Determinism & Replay | DR-03 | Non-determinism Isolation | ⭐ | No native LLM isolation mode | 23_determinism_evidence.py |
+| Determinism & Replay | DR-04 | Idempotency | ⭐ | No native idempotency keys | 22_determinism_replay.py |
+| Determinism & Replay | DR-05 | Plan Diff | ⭐ | No native diff visualization | 24_determinism_recovery.py |
+| Determinism & Replay | DR-06 | Failure Recovery | ⭐ | No native recovery mechanism | 24_determinism_recovery.py |
+| Connectors & Ops | CX-01 | Auth / Credential Management | ⭐ | No native OAuth/token management | 25_connectors_auth.py |
+| Connectors & Ops | CX-02 | Rate Limit / Retry | ⭐ | No native rate limiting | 26_connectors_ratelimit.py |
+| Connectors & Ops | CX-03 | Async Job Pattern | ⭐ | No native job tracking | 27_connectors_async.py |
+| Connectors & Ops | CX-04 | State Migration | ⭐⭐ | Schema changes break old checkpoints, no migration support | 27_connectors_async.py |
+| Observability | OB-03 | Log Output | ⭐⭐ | No native structured logging | - |
+| Observability | OB-05 | OTel Compliance | ⭐ | No native OpenTelemetry support | 28_observability_otel.py |
+| Observability | OB-06 | SLO / Alerts | ⭐ | No native SLO management | 29_observability_guard.py |
+| Observability | OB-07 | Cost Guard | ⭐ | No native budget/kill switch | 29_observability_guard.py |
+| Testing & Evaluation | TE-03 | Simulation / User Emulation | ⭐⭐ | No native user simulation, custom implementation | - |
+| Testing & Evaluation | TE-04 | Dry Run / Sandbox Mode | ⭐⭐ | No native dry run mode, custom tool wrapper needed | - |
 
 ---
 
@@ -147,33 +147,33 @@ This report summarizes the findings from evaluating LangGraph for production rea
 | Script | Categories | Key Verification Items |
 |--------|------------|------------------------|
 | 01_quickstart.py | - | Basic LangGraph structure |
-| 02_tool_definition.py | TC | TC-01: @tool, StructuredTool, args_schema |
-| 03_tool_execution.py | TC | TC-01, TC-03: ToolNode, parallel calls |
-| 04_tool_error_handling.py | TC | TC-04: Error handling, retry |
-| 05_hitl_interrupt.py | HI | HI-01, HI-02: interrupt(), get_state() |
-| 06_hitl_approve_reject_edit.py | HI | HI-03: Command(resume=...) patterns |
-| 07_durable_basic.py | DU | DU-01: Checkpoint behavior |
-| 08_durable_hitl.py | DU | DU-03: HITL persistence |
-| 09_durable_production.py | DU | DU-05, DU-06: Cleanup, concurrency |
-| 11_memory_store_basic.py | ME | ME-01, ME-04: Store CRUD |
-| 12_memory_semantic_search.py | ME | ME-03: Semantic search |
-| 13_memory_cross_thread.py | ME | ME-02: Cross-thread persistence |
-| 14_memory_langmem_tools.py | ME | ME-05: Agent memory tools |
-| 15_memory_background_extraction.py | ME | ME-06: Auto extraction |
-| 16_production_considerations.py | HI, DU, ME | Overall production summary |
-| 17_multiagent_supervisor.py | MA | MA-01, MA-03, MA-05: Supervisor pattern |
-| 18_multiagent_swarm.py | MA | MA-02, MA-04: Swarm/handoff pattern |
-| 19_governance_gate.py | GV, TC | GV-01, TC-02: Approval gate |
-| 20_governance_policy.py | GV | GV-02, GV-03: Policy engine |
-| 21_governance_audit.py | GV | GV-04, GV-06: PII, audit trail |
-| 22_determinism_replay.py | DR | DR-01, DR-04: Replay, idempotency |
-| 23_determinism_evidence.py | DR | DR-02, DR-03: Evidence, determinism |
-| 24_determinism_recovery.py | DR | DR-05, DR-06: Plan diff, recovery |
-| 25_connectors_auth.py | CX | CX-01: OAuth, secret management |
-| 26_connectors_ratelimit.py | CX | CX-02: Rate limiting, circuit breaker |
-| 27_connectors_async.py | CX | CX-03, CX-04: Async jobs, schema |
-| 28_observability_otel.py | OB | OB-05: OpenTelemetry integration |
-| 29_observability_guard.py | OB | OB-06, OB-07: SLO, cost guard |
+| 02_tool_definition.py | Tool Calling | TC-01: @tool, StructuredTool, args_schema |
+| 03_tool_execution.py | Tool Calling | TC-01, TC-03: ToolNode, parallel calls |
+| 04_tool_error_handling.py | Tool Calling | TC-04: Error handling, retry |
+| 05_hitl_interrupt.py | Human-in-the-Loop | HI-01, HI-02: interrupt(), get_state() |
+| 06_hitl_approve_reject_edit.py | Human-in-the-Loop | HI-03: Command(resume=...) patterns |
+| 07_durable_basic.py | Durable Execution | DU-01: Checkpoint behavior |
+| 08_durable_hitl.py | Durable Execution | DU-03: HITL persistence |
+| 09_durable_production.py | Durable Execution | DU-05, DU-06: Cleanup, concurrency |
+| 11_memory_store_basic.py | Memory | ME-01, ME-04: Store CRUD |
+| 12_memory_semantic_search.py | Memory | ME-03: Semantic search |
+| 13_memory_cross_thread.py | Memory | ME-02: Cross-thread persistence |
+| 14_memory_langmem_tools.py | Memory | ME-05: Agent memory tools |
+| 15_memory_background_extraction.py | Memory | ME-06: Auto extraction |
+| 16_production_considerations.py | Human-in-the-Loop, Durable Execution, Memory | Overall production summary |
+| 17_multiagent_supervisor.py | Multi-Agent | MA-01, MA-03, MA-05: Supervisor pattern |
+| 18_multiagent_swarm.py | Multi-Agent | MA-02, MA-04: Swarm/handoff pattern |
+| 19_governance_gate.py | Governance, Tool Calling | GV-01, TC-02: Approval gate |
+| 20_governance_policy.py | Governance | GV-02, GV-03: Policy engine |
+| 21_governance_audit.py | Governance | GV-04, GV-06: PII, audit trail |
+| 22_determinism_replay.py | Determinism & Replay | DR-01, DR-04: Replay, idempotency |
+| 23_determinism_evidence.py | Determinism & Replay | DR-02, DR-03: Evidence, determinism |
+| 24_determinism_recovery.py | Determinism & Replay | DR-05, DR-06: Plan diff, recovery |
+| 25_connectors_auth.py | Connectors & Ops | CX-01: OAuth, secret management |
+| 26_connectors_ratelimit.py | Connectors & Ops | CX-02: Rate limiting, circuit breaker |
+| 27_connectors_async.py | Connectors & Ops | CX-03, CX-04: Async jobs, schema |
+| 28_observability_otel.py | Observability | OB-05: OpenTelemetry integration |
+| 29_observability_guard.py | Observability | OB-06, OB-07: SLO, cost guard |
 
 ---
 
