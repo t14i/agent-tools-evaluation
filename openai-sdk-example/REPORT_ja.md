@@ -157,8 +157,13 @@ result = Runner.run_sync(agent, "Hello")
 | 観測性 | OB-03 | ログ出力 | ⭐⭐⭐⭐ | トレーススパン |
 | 観測性 | OB-04 | 外部連携 | ⭐⭐⭐⭐ | Datadog/Langfuse/Agenta |
 | テスト・評価 | TE-01 | ユニットテスト/モッキング | ⭐⭐⭐⭐ | model_settings注入 |
-| テスト・評価 | TE-02 | 状態注入 | ⭐⭐⭐ | セッション復元 |
+| テスト・評価 | TE-02 | テストフィクスチャ/状態注入 | ⭐⭐⭐ | セッション復元 |
 | テスト・評価 | TE-05 | 評価フック | ⭐⭐⭐ | OpenAI Evals統合 |
+| メモリ | ME-08 | Embeddingコスト | ⭐⭐⭐ | token_usage利用可 |
+| マルチエージェント | MA-05 | 共有メモリ | ⭐⭐⭐ | カスタム実装が必要 |
+| ガバナンス | GV-06 | 監査証跡完全性 | ⭐⭐⭐ | トレーシング部分的 |
+| 決定性・リプレイ | DR-02 | エビデンス参照 | ⭐⭐⭐ | トレーススパン利用可 |
+| コネクタ・運用 | CX-01 | 認証/クレデンシャル管理 | ⭐⭐⭐ | APIキーのみ |
 
 ---
 
@@ -173,19 +178,14 @@ result = Runner.run_sync(agent, "Hello")
 | メモリ | ME-04 | メモリAPI | ⭐⭐ | 限定的なCRUD API | 12_memory_context.py |
 | メモリ | ME-05 | エージェント自律管理 | ⭐ | LangMem相当なし | 12_memory_context.py |
 | メモリ | ME-07 | メモリクリーンアップ（TTL） | ⭐ | ネイティブTTLなし | 12_memory_context.py |
-| メモリ | ME-08 | Embeddingコスト | ⭐⭐⭐ | token_usage利用可 | 12_memory_context.py |
-| マルチエージェント | MA-05 | 共有メモリ | ⭐⭐⭐ | カスタム実装が必要 | 14_multiagent_orchestration.py |
 | ガバナンス | GV-02 | 最小権限/スコープ | ⭐⭐ | ネイティブ権限システムなし | 15_governance_guardrails.py |
 | ガバナンス | GV-04 | PII/除去 | ⭐ | ネイティブ除去なし | 16_governance_audit.py |
 | ガバナンス | GV-05 | テナント/目的拘束 | ⭐ | ネイティブバインディングなし | 16_governance_audit.py |
-| ガバナンス | GV-06 | 監査証跡完全性 | ⭐⭐⭐ | トレーシング部分的 | 16_governance_audit.py |
 | 決定性・リプレイ | DR-01 | リプレイ | ⭐⭐ | トレーシング部分的、LLMキャッシュなし | 17_determinism_replay.py |
-| 決定性・リプレイ | DR-02 | エビデンス参照 | ⭐⭐⭐ | トレーススパン利用可 | 17_determinism_replay.py |
 | 決定性・リプレイ | DR-03 | 非決定性の隔離 | ⭐⭐ | seedパラメータ限定的 | 17_determinism_replay.py |
 | 決定性・リプレイ | DR-04 | 冪等性 | ⭐ | ネイティブサポートなし | 18_determinism_recovery.py |
 | 決定性・リプレイ | DR-05 | プラン差分 | ⭐ | ネイティブ差分なし | 18_determinism_recovery.py |
 | 決定性・リプレイ | DR-06 | 障害復旧 | ⭐⭐ | Sessionsで部分的復旧可 | 18_determinism_recovery.py |
-| コネクタ・運用 | CX-01 | 認証/クレデンシャル管理 | ⭐⭐⭐ | APIキーのみ | 19_connectors_streaming.py |
 | コネクタ・運用 | CX-02 | レート制限/リトライ | ⭐⭐ | 自動リトライ一部、レート制限なし | 19_connectors_streaming.py |
 | コネクタ・運用 | CX-04 | 状態マイグレーション | ⭐⭐ | マイグレーションサポートなし | 20_connectors_responses.py |
 | 観測性 | OB-05 | OTel準拠 | ⭐⭐ | ネイティブOpenTelemetryなし | 22_observability_integration.py |

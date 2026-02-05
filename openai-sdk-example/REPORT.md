@@ -103,8 +103,13 @@ This report summarizes the findings from evaluating OpenAI Agents SDK (openai-ag
 | Observability | OB-03 | Log Output | ⭐⭐⭐⭐ | Trace spans |
 | Observability | OB-04 | External Integration | ⭐⭐⭐⭐ | Datadog/Langfuse/Agenta |
 | Testing & Evaluation | TE-01 | Unit Test / Mocking | ⭐⭐⭐⭐ | model_settings injection |
-| Testing & Evaluation | TE-02 | State Injection | ⭐⭐⭐ | Session restoration |
+| Testing & Evaluation | TE-02 | Test Fixtures / State Injection | ⭐⭐⭐ | Session restoration |
 | Testing & Evaluation | TE-05 | Evaluation Hooks | ⭐⭐⭐ | OpenAI Evals integration |
+| Memory | ME-08 | Embedding Cost | ⭐⭐⭐ | token_usage available |
+| Multi-Agent | MA-05 | Shared Memory | ⭐⭐⭐ | Custom implementation needed |
+| Governance | GV-06 | Audit Trail Completeness | ⭐⭐⭐ | Tracing partial |
+| Determinism & Replay | DR-02 | Evidence Reference | ⭐⭐⭐ | Trace spans available |
+| Connectors & Ops | CX-01 | Auth / Credential Management | ⭐⭐⭐ | API key only |
 
 ---
 
@@ -119,19 +124,14 @@ This report summarizes the findings from evaluating OpenAI Agents SDK (openai-ag
 | Memory | ME-04 | Memory API | ⭐⭐ | Limited CRUD API | 12_memory_context.py |
 | Memory | ME-05 | Agent Autonomous Management | ⭐ | No LangMem equivalent | 12_memory_context.py |
 | Memory | ME-07 | Memory Cleanup (TTL) | ⭐ | No native TTL | 12_memory_context.py |
-| Memory | ME-08 | Embedding Cost | ⭐⭐⭐ | token_usage available | 12_memory_context.py |
-| Multi-Agent | MA-05 | Shared Memory | ⭐⭐⭐ | Custom implementation needed | 14_multiagent_orchestration.py |
 | Governance | GV-02 | Least Privilege / Scope | ⭐⭐ | No native permission system | 15_governance_guardrails.py |
 | Governance | GV-04 | PII / Redaction | ⭐ | No native redaction | 16_governance_audit.py |
 | Governance | GV-05 | Tenant / Purpose Binding | ⭐ | No native binding | 16_governance_audit.py |
-| Governance | GV-06 | Audit Trail Completeness | ⭐⭐⭐ | Tracing partial | 16_governance_audit.py |
 | Determinism & Replay | DR-01 | Replay | ⭐⭐ | Tracing partial, no LLM cache | 17_determinism_replay.py |
-| Determinism & Replay | DR-02 | Evidence Reference | ⭐⭐⭐ | Trace spans available | 17_determinism_replay.py |
 | Determinism & Replay | DR-03 | Non-determinism Isolation | ⭐⭐ | seed parameter limited | 17_determinism_replay.py |
 | Determinism & Replay | DR-04 | Idempotency | ⭐ | No native support | 18_determinism_recovery.py |
 | Determinism & Replay | DR-05 | Plan Diff | ⭐ | No native diff | 18_determinism_recovery.py |
 | Determinism & Replay | DR-06 | Failure Recovery | ⭐⭐ | Sessions enable partial recovery | 18_determinism_recovery.py |
-| Connectors & Ops | CX-01 | Auth / Credential Management | ⭐⭐⭐ | API key only | 19_connectors_streaming.py |
 | Connectors & Ops | CX-02 | Rate Limit / Retry | ⭐⭐ | Some auto-retry, no rate limiting | 19_connectors_streaming.py |
 | Connectors & Ops | CX-04 | State Migration | ⭐⭐ | No migration support | 20_connectors_responses.py |
 | Observability | OB-05 | OTel Compliance | ⭐⭐ | No native OpenTelemetry | 22_observability_integration.py |

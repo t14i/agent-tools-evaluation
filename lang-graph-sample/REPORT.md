@@ -102,7 +102,6 @@ This report summarizes the findings from evaluating LangGraph for production rea
 | Testing & Evaluation | TE-01 | Unit Test / Mocking | ⭐⭐⭐⭐ | Graph structure enables node-level mocking, LLM injectable |
 | Testing & Evaluation | TE-02 | Test Fixtures / State Injection | ⭐⭐⭐⭐ | Checkpointer allows state injection for testing |
 | Testing & Evaluation | TE-05 | Evaluation Hooks | ⭐⭐⭐ | Node-based hooks possible, custom implementation |
-| Determinism & Replay | DR-01 | Replay | ⭐⭐ | Checkpointer partial support |
 
 ---
 

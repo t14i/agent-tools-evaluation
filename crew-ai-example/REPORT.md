@@ -335,3 +335,38 @@ Use the verification scripts (01-23) as templates to implement missing capabilit
 2. Add governance layer
 3. Build observability stack
 4. Consider LangGraph if advanced HITL or observability is critical
+
+---
+
+# File Structure
+
+```
+crew-ai-example/
+├── 01_quickstart.py              # Quick Start
+├── 02_tool_definition.py         # Tool definition comparison
+├── 03_tool_execution.py          # Tool execution
+├── 04_tool_error_handling.py     # Error handling, rate limiting
+├── 05_hitl_task_input.py         # HITL basics (human_input)
+├── 06_hitl_flow_feedback.py      # Flow-based HITL
+├── 07_durable_basic.py           # Durable execution basics
+├── 08_durable_resume.py          # @persist, resume
+├── 09_collaboration_delegation.py # Delegation
+├── 10_collaboration_hierarchical.py # Hierarchical process
+├── 11_memory_basic.py            # Memory features
+├── 12_memory_longterm.py         # Long-term persistence
+├── 13_production_concerns.py     # Logging, tokens
+├── 14_governance_gate.py         # Destructive operation gate
+├── 15_determinism_replay.py      # Replay, idempotency
+├── 16_governance_policy.py       # Least privilege, Policy as Code
+├── 17_governance_audit.py        # PII redaction, audit trail
+├── 18_determinism_evidence.py    # Evidence, deterministic mode
+├── 19_determinism_recovery.py    # Plan diff, failure recovery
+├── 20_connectors_auth.py         # OAuth, secret management
+├── 21_connectors_async.py        # Async jobs, schema validation
+├── 22_observability_otel.py      # OpenTelemetry integration
+├── 23_observability_guard.py     # SLO, cost guard
+├── REPORT.md                     # This report
+├── .env.example                  # Environment template
+├── pyproject.toml
+└── uv.lock
+```
