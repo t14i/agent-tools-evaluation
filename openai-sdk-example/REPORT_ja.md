@@ -96,16 +96,16 @@ result = Runner.run_sync(agent, "Hello")
 
 | カテゴリ | 項目数 | Good (⭐⭐⭐+) | Not Good (⭐⭐-) | 備考 |
 |----------|--------|---------------|-----------------|------|
-| TC (5) | 5 | 5 | 0 | ツール定義優秀、Pydanticネイティブ |
-| HI (5) | 5 | 3 | 2 | コールバックで承認、タイムアウト/通知は自作 |
-| DU (6) | 6 | 4 | 2 | Sessions API堅牢、クリーンアップ/並行性は自作 |
-| ME (8) | 8 | 4 | 4 | 基本メモリOK、エージェント自律管理なし |
-| MA (5) | 5 | 4 | 1 | ネイティブhandoffs優秀 |
-| GV (6) | 6 | 2 | 4 | Guardrails利用可、ポリシー/監査は自作 |
-| DR (6) | 6 | 1 | 5 | トレーシング部分的リプレイ、冪等性自作 |
-| CX (4) | 4 | 2 | 2 | Responses API良好、レート制限自作 |
-| OB (7) | 7 | 4 | 3 | 組み込みトレーシング優秀、OTel/SLO自作 |
-| TE (5) | 5 | 3 | 2 | モック注入可、シミュレーション自作 |
+| TC: ツール呼び出し | 5 | 5 | 0 | ツール定義優秀、Pydanticネイティブ |
+| HI: 人間介入 | 5 | 3 | 2 | コールバックで承認、タイムアウト/通知は自作 |
+| DU: 永続的実行 | 6 | 4 | 2 | Sessions API堅牢、クリーンアップ/並行性は自作 |
+| ME: メモリ | 8 | 4 | 4 | 基本メモリOK、エージェント自律管理なし |
+| MA: マルチエージェント | 5 | 4 | 1 | ネイティブhandoffs優秀 |
+| GV: ガバナンス | 6 | 2 | 4 | Guardrails利用可、ポリシー/監査は自作 |
+| DR: 決定性・リプレイ | 6 | 1 | 5 | トレーシング部分的リプレイ、冪等性自作 |
+| CX: コネクタ・運用 | 4 | 2 | 2 | Responses API良好、レート制限自作 |
+| OB: 観測性 | 7 | 4 | 3 | 組み込みトレーシング優秀、OTel/SLO自作 |
+| TE: テスト・評価 | 5 | 3 | 2 | モック注入可、シミュレーション自作 |
 | **合計** | **57** | **32** | **25** | |
 
 ### フェイルクローズ項目ステータス
@@ -129,36 +129,36 @@ result = Runner.run_sync(agent, "Hello")
 
 | カテゴリ | ID | 項目 | 評価 | 備考 |
 |----------|-----|------|------|------|
-| TC | TC-01 | ツール定義 | ⭐⭐⭐⭐⭐ | @function_toolデコレータ、自動Pydanticスキーマ |
-| TC | TC-02 | 制御可能な自動化 | ⭐⭐⭐⭐ | human_input_callback、ツールラッピング |
-| TC | TC-03 | 並列実行 | ⭐⭐⭐⭐⭐ | エージェントあたり最大128ツール |
-| TC | TC-04 | エラーハンドリング | ⭐⭐⭐⭐ | 自動エラーキャッチ、LLMリカバリ |
-| TC | TC-05 | 引数バリデーション | ⭐⭐⭐⭐⭐ | ネイティブPydantic統合 |
-| HI | HI-01 | 中断API | ⭐⭐⭐⭐ | human_input_callback、状態シリアライズ |
-| HI | HI-02 | 状態操作 | ⭐⭐⭐ | Sessionsで状態編集可 |
-| HI | HI-03 | 再開制御 | ⭐⭐⭐⭐ | コールバック経由の承認/却下 |
-| DU | DU-01 | 状態永続化 | ⭐⭐⭐⭐ | Sessions API |
-| DU | DU-02 | プロセス再開 | ⭐⭐⭐⭐ | セッション復元 |
-| DU | DU-03 | HITL永続化 | ⭐⭐⭐ | Sessions + 状態シリアライズ |
-| DU | DU-04 | ストレージ選択肢 | ⭐⭐⭐⭐⭐ | SQLite/SQLAlchemy/Dapr/Hosted |
-| ME | ME-01 | 短期メモリ | ⭐⭐⭐⭐ | Conversations API |
-| ME | ME-02 | 長期メモリ | ⭐⭐⭐⭐ | Sessions + Storage |
-| ME | ME-03 | セマンティック検索 | ⭐⭐⭐⭐ | File Search (RAG) 組み込み |
-| ME | ME-06 | 自動抽出 | ⭐⭐⭐ | Context Summarization |
-| MA | MA-01 | 複数エージェント定義 | ⭐⭐⭐⭐⭐ | Agentクラス、クリーンAPI |
-| MA | MA-02 | 委譲 | ⭐⭐⭐⭐⭐ | ネイティブhandoff()関数 |
-| MA | MA-03 | 階層プロセス | ⭐⭐⭐⭐ | Agent-as-toolパターン |
-| MA | MA-04 | ルーティング | ⭐⭐⭐⭐ | Handoff条件、柔軟 |
-| GV | GV-01 | 破壊的操作ゲート | ⭐⭐⭐⭐ | Guardrails + 承認 |
-| GV | GV-03 | Policy as Code | ⭐⭐⭐ | Guardrailクラス |
-| CX | CX-03 | 非同期ジョブ | ⭐⭐⭐⭐ | Responses API background=true |
-| OB | OB-01 | トレース | ⭐⭐⭐⭐⭐ | 組み込み、デフォルト有効 |
-| OB | OB-02 | トークン消費 | ⭐⭐⭐⭐⭐ | request_usage_entries |
-| OB | OB-03 | ログ出力 | ⭐⭐⭐⭐ | トレーススパン |
-| OB | OB-04 | 外部連携 | ⭐⭐⭐⭐ | Datadog/Langfuse/Agenta |
-| TE | TE-01 | ユニットテスト/モッキング | ⭐⭐⭐⭐ | model_settings注入 |
-| TE | TE-02 | 状態注入 | ⭐⭐⭐ | セッション復元 |
-| TE | TE-05 | 評価フック | ⭐⭐⭐ | OpenAI Evals統合 |
+| ツール呼び出し | TC-01 | ツール定義 | ⭐⭐⭐⭐⭐ | @function_toolデコレータ、自動Pydanticスキーマ |
+| ツール呼び出し | TC-02 | 制御可能な自動化 | ⭐⭐⭐⭐ | human_input_callback、ツールラッピング |
+| ツール呼び出し | TC-03 | 並列実行 | ⭐⭐⭐⭐⭐ | エージェントあたり最大128ツール |
+| ツール呼び出し | TC-04 | エラーハンドリング | ⭐⭐⭐⭐ | 自動エラーキャッチ、LLMリカバリ |
+| ツール呼び出し | TC-05 | 引数バリデーション | ⭐⭐⭐⭐⭐ | ネイティブPydantic統合 |
+| 人間介入 | HI-01 | 中断API | ⭐⭐⭐⭐ | human_input_callback、状態シリアライズ |
+| 人間介入 | HI-02 | 状態操作 | ⭐⭐⭐ | Sessionsで状態編集可 |
+| 人間介入 | HI-03 | 再開制御 | ⭐⭐⭐⭐ | コールバック経由の承認/却下 |
+| 永続的実行 | DU-01 | 状態永続化 | ⭐⭐⭐⭐ | Sessions API |
+| 永続的実行 | DU-02 | プロセス再開 | ⭐⭐⭐⭐ | セッション復元 |
+| 永続的実行 | DU-03 | HITL永続化 | ⭐⭐⭐ | Sessions + 状態シリアライズ |
+| 永続的実行 | DU-04 | ストレージ選択肢 | ⭐⭐⭐⭐⭐ | SQLite/SQLAlchemy/Dapr/Hosted |
+| メモリ | ME-01 | 短期メモリ | ⭐⭐⭐⭐ | Conversations API |
+| メモリ | ME-02 | 長期メモリ | ⭐⭐⭐⭐ | Sessions + Storage |
+| メモリ | ME-03 | セマンティック検索 | ⭐⭐⭐⭐ | File Search (RAG) 組み込み |
+| メモリ | ME-06 | 自動抽出 | ⭐⭐⭐ | Context Summarization |
+| マルチエージェント | MA-01 | 複数エージェント定義 | ⭐⭐⭐⭐⭐ | Agentクラス、クリーンAPI |
+| マルチエージェント | MA-02 | 委譲 | ⭐⭐⭐⭐⭐ | ネイティブhandoff()関数 |
+| マルチエージェント | MA-03 | 階層プロセス | ⭐⭐⭐⭐ | Agent-as-toolパターン |
+| マルチエージェント | MA-04 | ルーティング | ⭐⭐⭐⭐ | Handoff条件、柔軟 |
+| ガバナンス | GV-01 | 破壊的操作ゲート | ⭐⭐⭐⭐ | Guardrails + 承認 |
+| ガバナンス | GV-03 | Policy as Code | ⭐⭐⭐ | Guardrailクラス |
+| コネクタ・運用 | CX-03 | 非同期ジョブ | ⭐⭐⭐⭐ | Responses API background=true |
+| 観測性 | OB-01 | トレース | ⭐⭐⭐⭐⭐ | 組み込み、デフォルト有効 |
+| 観測性 | OB-02 | トークン消費 | ⭐⭐⭐⭐⭐ | request_usage_entries |
+| 観測性 | OB-03 | ログ出力 | ⭐⭐⭐⭐ | トレーススパン |
+| 観測性 | OB-04 | 外部連携 | ⭐⭐⭐⭐ | Datadog/Langfuse/Agenta |
+| テスト・評価 | TE-01 | ユニットテスト/モッキング | ⭐⭐⭐⭐ | model_settings注入 |
+| テスト・評価 | TE-02 | 状態注入 | ⭐⭐⭐ | セッション復元 |
+| テスト・評価 | TE-05 | 評価フック | ⭐⭐⭐ | OpenAI Evals統合 |
 
 ---
 
@@ -166,33 +166,33 @@ result = Runner.run_sync(agent, "Hello")
 
 | カテゴリ | ID | 項目 | 評価 | 備考 | 検証スクリプト |
 |----------|-----|------|------|------|----------------|
-| HI | HI-04 | タイムアウト | ⭐⭐ | カスタム実装が必要 | 06_hitl_state.py |
-| HI | HI-05 | 通知 | ⭐ | 組み込み通知なし | 06_hitl_state.py |
-| DU | DU-05 | クリーンアップ（TTL） | ⭐ | 自動クリーンアップなし | 09_session_production.py |
-| DU | DU-06 | 並行アクセス | ⭐⭐ | カスタムロックが必要 | 09_session_production.py |
-| ME | ME-04 | メモリAPI | ⭐⭐ | 限定的なCRUD API | 12_memory_context.py |
-| ME | ME-05 | エージェント自律管理 | ⭐ | LangMem相当なし | 12_memory_context.py |
-| ME | ME-07 | メモリクリーンアップ（TTL） | ⭐ | ネイティブTTLなし | 12_memory_context.py |
-| ME | ME-08 | Embeddingコスト | ⭐⭐⭐ | token_usage利用可 | 12_memory_context.py |
-| MA | MA-05 | 共有メモリ | ⭐⭐⭐ | カスタム実装が必要 | 14_multiagent_orchestration.py |
-| GV | GV-02 | 最小権限/スコープ | ⭐⭐ | ネイティブ権限システムなし | 15_governance_guardrails.py |
-| GV | GV-04 | PII/除去 | ⭐ | ネイティブ除去なし | 16_governance_audit.py |
-| GV | GV-05 | テナント/目的拘束 | ⭐ | ネイティブバインディングなし | 16_governance_audit.py |
-| GV | GV-06 | 監査証跡完全性 | ⭐⭐⭐ | トレーシング部分的 | 16_governance_audit.py |
-| DR | DR-01 | リプレイ | ⭐⭐ | トレーシング部分的、LLMキャッシュなし | 17_determinism_replay.py |
-| DR | DR-02 | エビデンス参照 | ⭐⭐⭐ | トレーススパン利用可 | 17_determinism_replay.py |
-| DR | DR-03 | 非決定性の隔離 | ⭐⭐ | seedパラメータ限定的 | 17_determinism_replay.py |
-| DR | DR-04 | 冪等性 | ⭐ | ネイティブサポートなし | 18_determinism_recovery.py |
-| DR | DR-05 | プラン差分 | ⭐ | ネイティブ差分なし | 18_determinism_recovery.py |
-| DR | DR-06 | 障害復旧 | ⭐⭐ | Sessionsで部分的復旧可 | 18_determinism_recovery.py |
-| CX | CX-01 | 認証/クレデンシャル管理 | ⭐⭐⭐ | APIキーのみ | 19_connectors_streaming.py |
-| CX | CX-02 | レート制限/リトライ | ⭐⭐ | 自動リトライ一部、レート制限なし | 19_connectors_streaming.py |
-| CX | CX-04 | 状態マイグレーション | ⭐⭐ | マイグレーションサポートなし | 20_connectors_responses.py |
-| OB | OB-05 | OTel準拠 | ⭐⭐ | ネイティブOpenTelemetryなし | 22_observability_integration.py |
-| OB | OB-06 | SLO/アラート | ⭐ | ネイティブSLO管理なし | 23_observability_guard.py |
-| OB | OB-07 | コストガード | ⭐ | ネイティブ予算/キルスイッチなし | 23_observability_guard.py |
-| TE | TE-03 | シミュレーション/ユーザーエミュレーション | ⭐⭐ | ネイティブシミュレーションなし | 25_testing_evaluation.py |
-| TE | TE-04 | ドライラン/サンドボックスモード | ⭐⭐ | ネイティブドライランなし | 25_testing_evaluation.py |
+| 人間介入 | HI-04 | タイムアウト | ⭐⭐ | カスタム実装が必要 | 06_hitl_state.py |
+| 人間介入 | HI-05 | 通知 | ⭐ | 組み込み通知なし | 06_hitl_state.py |
+| 永続的実行 | DU-05 | クリーンアップ（TTL） | ⭐ | 自動クリーンアップなし | 09_session_production.py |
+| 永続的実行 | DU-06 | 並行アクセス | ⭐⭐ | カスタムロックが必要 | 09_session_production.py |
+| メモリ | ME-04 | メモリAPI | ⭐⭐ | 限定的なCRUD API | 12_memory_context.py |
+| メモリ | ME-05 | エージェント自律管理 | ⭐ | LangMem相当なし | 12_memory_context.py |
+| メモリ | ME-07 | メモリクリーンアップ（TTL） | ⭐ | ネイティブTTLなし | 12_memory_context.py |
+| メモリ | ME-08 | Embeddingコスト | ⭐⭐⭐ | token_usage利用可 | 12_memory_context.py |
+| マルチエージェント | MA-05 | 共有メモリ | ⭐⭐⭐ | カスタム実装が必要 | 14_multiagent_orchestration.py |
+| ガバナンス | GV-02 | 最小権限/スコープ | ⭐⭐ | ネイティブ権限システムなし | 15_governance_guardrails.py |
+| ガバナンス | GV-04 | PII/除去 | ⭐ | ネイティブ除去なし | 16_governance_audit.py |
+| ガバナンス | GV-05 | テナント/目的拘束 | ⭐ | ネイティブバインディングなし | 16_governance_audit.py |
+| ガバナンス | GV-06 | 監査証跡完全性 | ⭐⭐⭐ | トレーシング部分的 | 16_governance_audit.py |
+| 決定性・リプレイ | DR-01 | リプレイ | ⭐⭐ | トレーシング部分的、LLMキャッシュなし | 17_determinism_replay.py |
+| 決定性・リプレイ | DR-02 | エビデンス参照 | ⭐⭐⭐ | トレーススパン利用可 | 17_determinism_replay.py |
+| 決定性・リプレイ | DR-03 | 非決定性の隔離 | ⭐⭐ | seedパラメータ限定的 | 17_determinism_replay.py |
+| 決定性・リプレイ | DR-04 | 冪等性 | ⭐ | ネイティブサポートなし | 18_determinism_recovery.py |
+| 決定性・リプレイ | DR-05 | プラン差分 | ⭐ | ネイティブ差分なし | 18_determinism_recovery.py |
+| 決定性・リプレイ | DR-06 | 障害復旧 | ⭐⭐ | Sessionsで部分的復旧可 | 18_determinism_recovery.py |
+| コネクタ・運用 | CX-01 | 認証/クレデンシャル管理 | ⭐⭐⭐ | APIキーのみ | 19_connectors_streaming.py |
+| コネクタ・運用 | CX-02 | レート制限/リトライ | ⭐⭐ | 自動リトライ一部、レート制限なし | 19_connectors_streaming.py |
+| コネクタ・運用 | CX-04 | 状態マイグレーション | ⭐⭐ | マイグレーションサポートなし | 20_connectors_responses.py |
+| 観測性 | OB-05 | OTel準拠 | ⭐⭐ | ネイティブOpenTelemetryなし | 22_observability_integration.py |
+| 観測性 | OB-06 | SLO/アラート | ⭐ | ネイティブSLO管理なし | 23_observability_guard.py |
+| 観測性 | OB-07 | コストガード | ⭐ | ネイティブ予算/キルスイッチなし | 23_observability_guard.py |
+| テスト・評価 | TE-03 | シミュレーション/ユーザーエミュレーション | ⭐⭐ | ネイティブシミュレーションなし | 25_testing_evaluation.py |
+| テスト・評価 | TE-04 | ドライラン/サンドボックスモード | ⭐⭐ | ネイティブドライランなし | 25_testing_evaluation.py |
 
 ---
 
@@ -201,30 +201,30 @@ result = Runner.run_sync(agent, "Hello")
 | スクリプト | カテゴリ | 主要検証項目 |
 |------------|----------|--------------|
 | 01_quickstart.py | - | 基本的なAgent SDK構造 |
-| 02_tool_definition.py | TC | TC-01: @function_tool、Pydantic |
-| 03_tool_execution.py | TC | TC-03, TC-04, TC-05: 並列、エラー、バリデーション |
-| 04_tool_control.py | TC | TC-02: 制御可能な自動化 |
-| 05_hitl_approval.py | HI | HI-01, HI-03: 承認フロー |
-| 06_hitl_state.py | HI | HI-02, HI-04, HI-05: 状態、タイムアウト、通知 |
-| 07_session_basic.py | DU | DU-01, DU-02: Sessions |
-| 08_session_backends.py | DU | DU-03, DU-04: ストレージバックエンド |
-| 09_session_production.py | DU | DU-05, DU-06: クリーンアップ、並行性 |
-| 10_memory_conversation.py | ME | ME-01, ME-02: 会話メモリ |
-| 11_memory_filesearch.py | ME | ME-03: File Search / RAG |
-| 12_memory_context.py | ME | ME-04 ~ ME-08: コンテキスト管理 |
-| 13_multiagent_handoff.py | MA | MA-01, MA-02: ネイティブhandoffs |
-| 14_multiagent_orchestration.py | MA | MA-03, MA-04, MA-05: オーケストレーション |
-| 15_governance_guardrails.py | GV | GV-01, GV-02, GV-03: Guardrails |
-| 16_governance_audit.py | GV | GV-04, GV-05, GV-06: 監査証跡 |
-| 17_determinism_replay.py | DR | DR-01, DR-02, DR-03: リプレイ |
-| 18_determinism_recovery.py | DR | DR-04, DR-05, DR-06: 復旧 |
-| 19_connectors_streaming.py | CX | CX-01, CX-02: 認証、レート制限 |
-| 20_connectors_responses.py | CX | CX-03, CX-04: Responses API |
-| 21_observability_tracing.py | OB | OB-01, OB-02, OB-03: トレーシング |
-| 22_observability_integration.py | OB | OB-04, OB-05: 外部連携 |
-| 23_observability_guard.py | OB | OB-06, OB-07: SLO、コストガード |
-| 24_testing_mock.py | TE | TE-01, TE-02: モッキング |
-| 25_testing_evaluation.py | TE | TE-03, TE-04, TE-05: 評価 |
+| 02_tool_definition.py | ツール呼び出し | TC-01: @function_tool、Pydantic |
+| 03_tool_execution.py | ツール呼び出し | TC-03, TC-04, TC-05: 並列、エラー、バリデーション |
+| 04_tool_control.py | ツール呼び出し | TC-02: 制御可能な自動化 |
+| 05_hitl_approval.py | 人間介入 | HI-01, HI-03: 承認フロー |
+| 06_hitl_state.py | 人間介入 | HI-02, HI-04, HI-05: 状態、タイムアウト、通知 |
+| 07_session_basic.py | 永続的実行 | DU-01, DU-02: Sessions |
+| 08_session_backends.py | 永続的実行 | DU-03, DU-04: ストレージバックエンド |
+| 09_session_production.py | 永続的実行 | DU-05, DU-06: クリーンアップ、並行性 |
+| 10_memory_conversation.py | メモリ | ME-01, ME-02: 会話メモリ |
+| 11_memory_filesearch.py | メモリ | ME-03: File Search / RAG |
+| 12_memory_context.py | メモリ | ME-04 ~ ME-08: コンテキスト管理 |
+| 13_multiagent_handoff.py | マルチエージェント | MA-01, MA-02: ネイティブhandoffs |
+| 14_multiagent_orchestration.py | マルチエージェント | MA-03, MA-04, MA-05: オーケストレーション |
+| 15_governance_guardrails.py | ガバナンス | GV-01, GV-02, GV-03: Guardrails |
+| 16_governance_audit.py | ガバナンス | GV-04, GV-05, GV-06: 監査証跡 |
+| 17_determinism_replay.py | 決定性・リプレイ | DR-01, DR-02, DR-03: リプレイ |
+| 18_determinism_recovery.py | 決定性・リプレイ | DR-04, DR-05, DR-06: 復旧 |
+| 19_connectors_streaming.py | コネクタ・運用 | CX-01, CX-02: 認証、レート制限 |
+| 20_connectors_responses.py | コネクタ・運用 | CX-03, CX-04: Responses API |
+| 21_observability_tracing.py | 観測性 | OB-01, OB-02, OB-03: トレーシング |
+| 22_observability_integration.py | 観測性 | OB-04, OB-05: 外部連携 |
+| 23_observability_guard.py | 観測性 | OB-06, OB-07: SLO、コストガード |
+| 24_testing_mock.py | テスト・評価 | TE-01, TE-02: モッキング |
+| 25_testing_evaluation.py | テスト・評価 | TE-03, TE-04, TE-05: 評価 |
 
 ---
 
